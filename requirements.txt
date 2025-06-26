@@ -1,0 +1,8 @@
+# Core dependencies
+pandas>=2.0.0
+numpy>=1.24.0
+yfinance>=0.2.36
+
+# Optional: For plotting or debugging
+matplotlib>=3.7.0
+seaborn>=0.12.2
