@@ -31,7 +31,7 @@ def get_data(ticker: str, interval: str = "1m", start: str = None, end: str = No
     df.dropna(inplace=True)
     df = df.reset_index()
     if isinstance(df.columns, pd.MultiIndex):
-        df.columns = ['_'.join(col.strip()).strip() for col in df.columns.values]
+        df.columns = ['_'.join(col).strip() for col in df.columns.values]
     df.columns = df.columns.str.lower()  # standardize column names
     
     return df
