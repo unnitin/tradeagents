@@ -4,7 +4,7 @@ This directory contains algorithmic trading strategies implemented in Python. Ea
 
 ## Strategies Overview
 
-### 1. ATRVolatilityFilter (`atr_filter.py`)
+### 1. ATRVolatilityFilter ([atr_filter.py](./atr_filter.py))
 - **Purpose:** Acts as a volatility filter using the Average True Range (ATR).
 - **Parameters:**
   - `atr_col` (str): Name of the ATR column in the DataFrame. Default: `"atr_14"`.
@@ -13,7 +13,7 @@ This directory contains algorithmic trading strategies implemented in Python. Ea
   - Compares the current ATR value to its rolling mean over a window.
   - Returns 1 if volatility is high (ATR > rolling mean), else 0.
 
-### 2. BollingerBounce (`bollinger_bounce.py`)
+### 2. BollingerBounce ([bollinger_bounce.py](./bollinger_bounce.py))
 - **Purpose:** Generates signals based on price bouncing off Bollinger Bands.
 - **Parameters:**
   - `bb_window` (int): Window size for calculating Bollinger Bands. Default: `20`.
@@ -22,7 +22,7 @@ This directory contains algorithmic trading strategies implemented in Python. Ea
   - Returns -1 if the close price is above the upper Bollinger Band (potential sell).
   - Returns 0 otherwise.
 
-### 3. MACDCross (`macd_cross.py`)
+### 3. MACDCross ([macd_cross.py](./macd_cross.py))
 - **Purpose:** Uses MACD indicator crossovers for signals.
 - **Parameters:**
   - `macd_signal` (int): Column index or name for the MACD signal line. Default: `10`.
@@ -31,7 +31,7 @@ This directory contains algorithmic trading strategies implemented in Python. Ea
   - Returns -1 if MACD is below the signal line.
   - Returns 0 otherwise.
 
-### 4. RSIReversion (`rsi_reversion.py`)
+### 4. RSIReversion ([rsi_reversion.py](./rsi_reversion.py))
 - **Purpose:** Mean reversion strategy using the Relative Strength Index (RSI).
 - **Parameters:**
   - `rsi_col` (str): Name of the RSI column in the DataFrame. Default: `"rsi_14"`.
@@ -42,7 +42,7 @@ This directory contains algorithmic trading strategies implemented in Python. Ea
   - Returns -1 if RSI is above a high threshold (overbought).
   - Returns 0 otherwise.
 
-### 5. SMACrossover (`sma_crossover.py`)
+### 5. SMACrossover ([sma_crossover.py](./sma_crossover.py))
 - **Purpose:** Simple Moving Average crossover strategy.
 - **Parameters:**
   - `fast` (int): Window size for the fast SMA. Default: `20`.
