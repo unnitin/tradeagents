@@ -9,7 +9,7 @@ class SMACrossover(Strategy):
     def generate_signals(self, df: pd.DataFrame) -> pd.Series:
         signal = pd.Series(0, index=df.index)
         condition_buy = df[f"sma_{self.fast}"] > df[f"sma_{self.slow}"]
-        condition_sell = df[f"sma_{self_fast}"] < df[f"sma_{self_slow}"]
+        condition_sell = df[f"sma_{self.fast}"] < df[f"sma_{self.slow}"]
         signal[condition_buy] = 1
         signal[condition_sell] = -1
         return signal
