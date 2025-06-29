@@ -17,9 +17,9 @@ def resample_ohlcv(df: pd.DataFrame, interval: str = "5min") -> pd.DataFrame:
     """
     ohlc_dict = {
         'open': OHLCVResampleRules.open,
-        'high': OHLCVResampleRules.max,
-        'low': OHLCVResampleRules.min,
-        'close': OHLCVResampleRules.last,
+        'high': OHLCVResampleRules.high,
+        'low': OHLCVResampleRules.low,
+        'close': OHLCVResampleRules.close,
         'volume': OHLCVResampleRules.volume
     }
 
