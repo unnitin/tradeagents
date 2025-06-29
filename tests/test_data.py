@@ -1,5 +1,6 @@
 import unittest
 import pandas as pd
+
 from data.fetch_data import get_data
 from data.features import add_sma, add_ema, add_rsi
 from data.preprocess import resample_ohlcv
