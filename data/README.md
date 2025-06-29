@@ -6,15 +6,30 @@ The `data/` module provides utilities for fetching, preprocessing, and engineeri
 
 ## Contents
 
-- `fetch_data.py` – Historical data acquisition from Yahoo Finance.
-- `preprocess.py` – Resampling of OHLCV time series.
-- `features.py` – Core technical indicators used for feature engineering.
-- `feature_pipeline.py` – Unified feature application pipeline.
-- `constants.py` – Immutable mappings for safe and standardized transformations.
+- [`fetch_data.py`](./fetch_data.py) – Historical data acquisition from Yahoo Finance.
+- [`preprocess.py`](./preprocess.py) – Resampling of OHLCV time series.
+- [`features.py`](./features.py) – Core technical indicators used for feature engineering.
+- [`constants.py`](./constants.py) – Immutable mappings for safe and standardized transformations.
 
 ---
 
-## 🔍 Feature Engineering Functions (in `features.py`)
+## File Descriptions
+
+### [`fetch_data.py`](./fetch_data.py)
+Fetches historical OHLCV data from Yahoo Finance using yfinance. Cleans and standardizes the data, ensuring single-level column names and proper datetime formatting.
+
+### [`preprocess.py`](./preprocess.py)
+Provides functions to resample OHLCV data to different time intervals using standardized aggregation rules (see `constants.py`).
+
+### [`features.py`](./features.py)
+Includes functions to add technical indicators such as SMA, EMA, and RSI to your DataFrame for use in trading strategies.
+
+### [`constants.py`](./constants.py)
+Defines immutable dataclasses and constants, such as `OHLCVResampleRules`, for safe and consistent data transformations.
+
+---
+
+## 🔍 Feature Engineering Functions (in [`features.py`](./features.py))
 
 ### `add_sma(df, window=20)`
 **Simple Moving Average**
@@ -120,3 +135,4 @@ from data.feature_pipeline import apply_feature_pipeline
 
 df = get_data("AAPL", interval="1m", start="2024-06-01", end="2024-06-07")
 df = apply_feature_pipeline(df)
+```
