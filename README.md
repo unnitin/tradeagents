@@ -10,7 +10,6 @@ To build a flexible, intelligent algorithmic trading engine that:
 * Combines technical and LLM-based strategies
 * Enables dynamic strategy composition via config or AI/agent input
 * Supports clean modularity for data, features, signals, and execution
-* Is backtest-ready and broker-adaptable
 * Connects to stable broker back-ends, executes trades and has safety rails built in
 
 ---
@@ -24,8 +23,8 @@ To build a flexible, intelligent algorithmic trading engine that:
 | 🔍 Feature-Rich Data Layer            | Clean OHLCV + technical indicators + sentiment features                     |
 | 📊 Backtest Support                   | Evaluate strategy combinations historically with performance metrics        |
 | 🧪 LLM/NLP Integration                | Real-time or historical sentiment processing via FinBERT or GPT             |
-| 🔄 Safety GuardRails             | Configurable guardrails to protect capital       |
-| 🔄 Runtime Configurability            | Use YAML or command-line flags to toggle weights, strategies, signals       |
+| 🔄 Safety GuardRails             | Configurable guardrails to protect capital during turbulent markets      |
+| 🔄 Runtime Configurability            | Use YAML or command-line flags to toggle weights, strategies, signals and easily change strategies with version control      |
 
 ---
 
@@ -35,9 +34,11 @@ To build a flexible, intelligent algorithmic trading engine that:
 | --------------------------- | --------------------------------------------------------------------------- |
 | `data/`                     | Data ingestion, resampling, feature generation (SMA, RSI, MACD, etc.)       |
 | `strategies/`               | Self-contained signal generation logic (e.g., RSIReversion, MACDCross)      |
-| `composer.py`               | Combines strategies using weights, logic, or LLM-generated rules            |
-| `utils/sentiment_engine.py` | Score financial sentiment using FinBERT or LLM APIs                         |
+| `composer/`               | Combines strategies using weights, logic, or LLM-generated rules            |
+| `utils/` | (Example) Score financial sentiment using FinBERT or LLM APIs                         |
 | `backtest/`                 | (Planned) Simulate performance of strategy combinations                     |
+| `execute/`                 | (Planned) Launch strategies in live markets                     |
+| `monitor/`                 | (Planned) Measure effectiveness of strategies in live markets                     |
 | `config.yaml`               | (Planned) Store tunable strategy combinations and thresholds                |
 | `main.py`                   | Entry point; coordinates data pull, signal gen, logging, pipeline execution |
 
@@ -57,15 +58,17 @@ To build a flexible, intelligent algorithmic trading engine that:
 
 * OHLCV + features (RSI, SMA, MACD, BB, ATR)
 * Modular strategy classes
-* LLM-based sentiment scoring (`FinBERT`)
+* LLM-based sentiment scoring (`FinBERT` etc.)
 * Strategy composer with `weighted_sum` and `majority_vote`
-* Runtime logging
+* Back testing strategies on historical data with performance measurement 
+
 
 ❌ Exclude for now:
 
 * Broker integration (Alpaca, InteractiveBrokers)
 * Execution engine
-* Web dashboard
+* Web dashboard / dashboard of anytype
+* Runtime logging
 * Live alerting/Slack integration
 
 ---
