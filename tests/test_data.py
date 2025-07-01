@@ -1,5 +1,10 @@
 import unittest
 import pandas as pd
+import sys
+import os
+
+# Add parent directory to path to import data modules
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from data.fetch_data import get_data
 from data.features import add_sma, add_ema, add_rsi

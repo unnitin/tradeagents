@@ -25,11 +25,12 @@ This directory contains algorithmic trading strategies implemented in Python. Ea
 ### 3. MACDCross ([macd_cross.py](./macd_cross.py))
 - **Purpose:** Uses MACD indicator crossovers for signals.
 - **Parameters:**
-  - `macd_signal` (int): Column index or name for the MACD signal line. Default: `10`.
+  - `macd_col` (str): Name of the MACD column in the DataFrame. Default: `"macd"`.
+  - `signal_col` (str): Name of the MACD signal line column. Default: `"macd_signal"`.
 - **Logic:**
-  - Returns 1 if MACD is above the signal line.
-  - Returns -1 if MACD is below the signal line.
-  - Returns 0 otherwise.
+  - Returns 1 when MACD crosses ABOVE the signal line (bullish crossover).
+  - Returns -1 when MACD crosses BELOW the signal line (bearish crossover).
+  - Returns 0 otherwise (no crossover).
 
 ### 4. RSIReversion ([rsi_reversion.py](./rsi_reversion.py))
 - **Purpose:** Mean reversion strategy using the Relative Strength Index (RSI).
@@ -48,9 +49,26 @@ This directory contains algorithmic trading strategies implemented in Python. Ea
   - `fast` (int): Window size for the fast SMA. Default: `20`.
   - `slow` (int): Window size for the slow SMA. Default: `50`.
 - **Logic:**
-  - Returns 1 if the fast SMA crosses above the slow SMA (bullish).
-  - Returns -1 if the fast SMA crosses below the slow SMA (bearish).
-  - Returns 0 otherwise.
+  - Returns 1 when the fast SMA crosses ABOVE the slow SMA (bullish crossover).
+  - Returns -1 when the fast SMA crosses BELOW the slow SMA (bearish crossover).
+  - Returns 0 otherwise (no crossover).
+
+---
+
+## 🏛️ Politician Tracking Strategies
+
+### Overview
+Politician tracking strategies follow the trading activity of elected officials based on their public SEC filings. For complete setup instructions, implementation examples, and API integration, see the **[🏛️ Politician Trade Tracking](../README.md#-politician-trade-tracking)** section in the main README.
+
+### Quick Start
+1. **Twitter Method (Free)**: Follow @PelosiTracker for real-time alerts
+2. **API Method ($10/month)**: Use Quiver Quantitative for automated tracking
+3. **Hybrid Approach**: Combine both for comprehensive coverage
+
+### Implementation Files
+- `../data/politician_trades_live.py`: Live API integration
+- `../data/twitter_politician_tracker.py`: Twitter monitoring
+- `../examples/easy_politician_tracking.py`: Complete examples
 
 ---
 
