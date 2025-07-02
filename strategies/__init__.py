@@ -5,6 +5,7 @@ from .macd_cross import MACDCross
 from .bollinger_bounce import BollingerBounce
 from .atr_filter import ATRVolatilityFilter
 from .sentiment_llm import SentimentLLMStrategy
+from .politician_following import PoliticianFollowingStrategy, PelosiTrackingStrategy, CongressMomentumStrategy
 from .strategy_registry import get_all_strategies, combine_signals
 
 __all__ = [
@@ -15,6 +16,9 @@ __all__ = [
     'BollingerBounce',
     'ATRVolatilityFilter',
     'SentimentLLMStrategy',
+    'PoliticianFollowingStrategy',
+    'PelosiTrackingStrategy',
+    'CongressMomentumStrategy',
     'get_all_strategies',
     'combine_signals'
 ]
