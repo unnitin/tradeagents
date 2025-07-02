@@ -7,9 +7,10 @@ import numpy as np
 # Add parent directory to path to import data modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from data.fetch_data import get_data
-from data.features import add_sma, add_ema, add_rsi, add_bollinger_bands, add_macd, add_atr
-from data.preprocess import resample_ohlcv
+from data import (
+    get_data, add_sma, add_ema, add_rsi, add_bollinger_bands, 
+    add_macd, add_atr, resample_ohlcv
+)
 from data.constants import OHLCVResampleRules
 
 class TestFetchData(unittest.TestCase):
