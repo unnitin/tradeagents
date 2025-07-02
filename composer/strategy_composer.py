@@ -19,7 +19,8 @@ from abc import ABC, abstractmethod
 # Import all available strategies using clean public API
 from strategies import (
     Strategy, SMACrossover, RSIReversion, MACDCross, 
-    BollingerBounce, ATRVolatilityFilter, SentimentLLMStrategy
+    BollingerBounce, ATRVolatilityFilter, SentimentLLMStrategy,
+    PoliticianFollowingStrategy, PelosiTrackingStrategy, CongressMomentumStrategy
 )
 
 
@@ -61,6 +62,9 @@ class StrategyComposer:
             'BollingerBounce': BollingerBounce,
             'ATRVolatilityFilter': ATRVolatilityFilter,
             'SentimentLLMStrategy': SentimentLLMStrategy,
+            'PoliticianFollowingStrategy': PoliticianFollowingStrategy,
+            'PelosiTrackingStrategy': PelosiTrackingStrategy,
+            'CongressMomentumStrategy': CongressMomentumStrategy,
         }
     
     def register_strategies(self) -> None:

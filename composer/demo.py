@@ -76,6 +76,70 @@ def calculate_atr(df, period=14):
     true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
     return true_range.rolling(period).mean()
 
+def demo_politician_tracking():
+    """Demonstrate politician tracking strategies."""
+    print("\n" + "="*60)
+    print("🏛️  POLITICIAN TRACKING STRATEGIES DEMO")
+    print("="*60)
+    
+    df = create_sample_data()
+    
+    print("📋 Available Politician Tracking Strategies:")
+    print("   • PoliticianFollowingStrategy - Follow all politicians")
+    print("   • PelosiTrackingStrategy - Focus on Nancy Pelosi trades")
+    print("   • CongressMomentumStrategy - Detect Congress momentum")
+    
+    try:
+        composer = create_composer()
+        
+        # Test politician combinations (even though they're disabled by default)
+        politician_combos = ['pelosi_only', 'politician_ensemble', 'hybrid_political']
+        
+        for combo_name in politician_combos:
+            print(f"\n🔍 Testing: {combo_name}")
+            print("-" * 40)
+            
+            try:
+                combo_info = composer.get_combination_info(combo_name)
+                print(f"   Method: {combo_info.get('method')}")
+                strategies_list = combo_info.get('strategies', [])
+                if strategies_list:
+                    print(f"   Strategies: {', '.join(strategies_list)}")
+                
+                # Try to get signals (will likely show warning about API access)
+                signals = get_signals(combo_name, df)
+                
+                # Show signal statistics
+                total_signals = (signals != 0).sum()
+                buy_signals = (signals == 1).sum()
+                sell_signals = (signals == -1).sum()
+                
+                print(f"   📈 Buy signals: {buy_signals}")
+                print(f"   📉 Sell signals: {sell_signals}")
+                print(f"   📊 Total signals: {total_signals}")
+                
+                if total_signals > 0:
+                    print(f"   ✅ Generated {total_signals} signals")
+                else:
+                    print("   ⚠️  No signals (strategies disabled - need API access)")
+                    
+            except Exception as e:
+                print(f"   ❌ Error: {e}")
+                
+    except Exception as e:
+        print(f"❌ Could not initialize composer: {e}")
+    
+    print("\n💡 Politician Tracking Benefits:")
+    print("   • Follow Congress trades for market insights")
+    print("   • Detect patterns in political trading behavior")
+    print("   • Combine with technical analysis for hybrid approach")
+    print("   • Track specific politicians (Pelosi, Cruz, etc.)")
+    
+    print("\n⚙️  To Enable Politician Tracking:")
+    print("   1. Get Quiver API key (quiverquant.com)")
+    print("   2. Set enabled: true in config/strategies.yaml")
+    print("   3. Configure your preferred politicians and parameters")
+
 def main():
     """Main demonstration function."""
     print("=== Strategy Composer Demo ===\n")
@@ -84,8 +148,8 @@ def main():
     print("1. Creating sample market data...")
     df = create_sample_data()
     print(f"   Generated {len(df)} days of sample data")
-    print(f"   Data range: {df.index[0].date()} to {df.index[-1].date()}")
-    print(f"   Sample close prices: {df['close'].head(3).values}")
+    print(f"   Data range: {df.index[0]} to {df.index[-1]}")
+    print(f"   Sample close prices: {df['close'].iloc[:3].values}")
     
     # Create composer
     print("\n2. Initializing Strategy Composer...")
@@ -115,13 +179,13 @@ def main():
         print(f"      - Hold signals (0):  {hold_signals}")
         
         # Show some sample signals
-        signal_dates = signals[signals != 0].head(5)
+        signal_dates = signals[signals != 0].iloc[:5]
         if len(signal_dates) > 0:
             print(f"   📅 Sample signals:")
             for date, signal in signal_dates.items():
                 action = "BUY" if signal == 1 else "SELL"
                 price = df.loc[date, 'close']
-                print(f"      - {date.date()}: {action} at ${price:.2f}")
+                print(f"      - {date}: {action} at ${price:.2f}")
         
     except Exception as e:
         print(f"   ✗ Error executing combination: {e}")
@@ -161,6 +225,9 @@ def main():
         print(f"   ✓ Signals match previous execution: {signals.equals(quick_signals)}")
     except Exception as e:
         print(f"   ✗ Error with convenience function: {e}")
+    
+    # Demo politician tracking strategies
+    demo_politician_tracking()
     
     print("\n=== Demo Complete ===")
     print("The composer is ready to integrate with:")
