@@ -1,0 +1,69 @@
+# Strategy Configuration File
+# This file defines how strategies should be initialized and combined
+
+# Individual strategy configurations
+strategies:
+  sma_crossover:
+    class: SMACrossover
+    parameters:
+      fast: 20
+      slow: 50
+    enabled: true
+    
+  rsi_reversion:
+    class: RSIReversion
+    parameters: {}
+    enabled: true
+    
+  macd_cross:
+    class: MACDCross
+    parameters: {}
+    enabled: true
+    
+  bollinger_bounce:
+    class: BollingerBounce
+    parameters: {}
+    enabled: true
+    
+  sentiment_llm:
+    class: SentimentLLMStrategy
+    parameters:
+      sentiment_threshold: 0.3
+    enabled: false  # Disabled by default as it requires news data
+    
+  atr_filter:
+    class: ATRVolatilityFilter
+    parameters: {}
+    enabled: true
+    type: filter  # This is a filter, not a directional strategy
+
+# Strategy combination settings
+combinations:
+  # Example combination: Technical indicators ensemble
+  technical_ensemble:
+    strategies:
+      - sma_crossover
+      - rsi_reversion
+      - macd_cross
+      - bollinger_bounce
+    method: majority_vote  # Options: majority_vote, weighted_average, unanimous
+    weights:  # Only used if method is weighted_average
+      sma_crossover: 0.3
+      rsi_reversion: 0.3
+      macd_cross: 0.25
+      bollinger_bounce: 0.15
+    filters:
+      - atr_filter  # Apply volatility filter to final signals
+    
+  # Example single strategy execution (like quiver strategies)
+  sentiment_only:
+    strategies:
+      - sentiment_llm
+    method: single
+    filters: []
+
+# Global settings
+settings:
+  signal_threshold: 0.5  # Minimum signal strength for execution
+  max_positions: 10      # Maximum number of concurrent positions
+  risk_per_trade: 0.02   # Risk per trade as fraction of portfolio 
