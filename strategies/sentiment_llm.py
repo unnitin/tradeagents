@@ -1,6 +1,6 @@
 import pandas as pd
 from strategies.base import Strategy
-from utils.sentiment_engine import score_sentiment
+from utils import score_sentiment
 
 class SentimentLLMStrategy(Strategy):
     def __init__(self, sentiment_threshold: float = 0.3):
@@ -14,10 +14,19 @@ class SentimentLLMStrategy(Strategy):
 
         for idx, row in news_df.iterrows():
             headline = row.get("news_headline", "")
-            score = score_sentiment(headline)
-            if score > self.threshold:
-                signal[idx] = 1
-            elif score < -self.threshold:
-                signal[idx] = -1
+            if headline:
+                sentiment_result = score_sentiment(headline)
+                # Convert sentiment label to numeric score
+                if sentiment_result['label'] == 'bullish':
+                    score = sentiment_result['score']
+                elif sentiment_result['label'] == 'bearish':
+                    score = -sentiment_result['score']
+                else:  # neutral
+                    score = 0.0
+                
+                if score > self.threshold:
+                    signal[idx] = 1
+                elif score < -self.threshold:
+                    signal[idx] = -1
 
         return signal

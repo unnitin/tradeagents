@@ -1,5 +1,5 @@
 import pandas as pd
-from strategies.base import Strategy
+from .base import Strategy
 
 class BollingerBounce(Strategy):
     def __init__(self, bb_window: int = 20):

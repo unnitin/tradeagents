@@ -1,5 +1,5 @@
 import pandas as pd
-from strategies.base import Strategy
+from .base import Strategy
 
 class ATRVolatilityFilter(Strategy):
     def __init__(self, atr_col: str = "atr_14", window: int = 50):
