@@ -7,12 +7,10 @@ import os
 # Add parent directory to path to import strategies
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from strategies.atr_filter import ATRVolatilityFilter
-from strategies.bollinger_bounce import BollingerBounce
-from strategies.macd_cross import MACDCross
-from strategies.rsi_reversion import RSIReversion
-from strategies.sma_crossover import SMACrossover
-from strategies.strategy_registry import get_all_strategies
+from strategies import (
+    ATRVolatilityFilter, BollingerBounce, MACDCross, 
+    RSIReversion, SMACrossover, get_all_strategies
+)
 
 
 class TestStrategiesBasic(unittest.TestCase):

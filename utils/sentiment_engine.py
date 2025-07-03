@@ -1,5 +1,5 @@
 from transformers import pipeline
-from utils.constants import (
+from .constants import (
     FINBERT_MODEL_NAME,
     FINBERT_TOKENIZER,
     SENTIMENT_TRUNCATE_CHARS,

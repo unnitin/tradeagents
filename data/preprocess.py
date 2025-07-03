@@ -1,7 +1,7 @@
 # data/preprocess.py
 
 import pandas as pd
-from data.constants import OHLCVResampleRules
+from .constants import OHLCVResampleRules
 
 
 def resample_ohlcv(df: pd.DataFrame, interval: str = "5min") -> pd.DataFrame:
