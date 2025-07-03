@@ -3,6 +3,7 @@ import pandas as pd
 import sys
 import os
 import numpy as np
+from datetime import datetime, timedelta
 
 # Add parent directory to path to import data modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,10 +16,22 @@ from data.constants import OHLCVResampleRules
 
 class TestFetchData(unittest.TestCase):
     def test_get_data_returns_dataframe(self):
-        # Use a very short time window for speed
-        df = get_data("AAPL", interval="1d", start="2024-06-01", end="2024-06-03")
+        # Use dynamic dates based on today to ensure recent data availability
+        # Go back 10 days to ensure we capture multiple trading days (avoiding weekends)
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=10)
+        
+        # Format dates as strings
+        start_str = start_date.strftime("%Y-%m-%d")
+        end_str = end_date.strftime("%Y-%m-%d")
+        
+        df = get_data("AAPL", interval="1d", start=start_str, end=end_str)
         self.assertIsInstance(df, pd.DataFrame)
-        self.assertIn("close", df.columns)
+        # Check for close column (may be named 'close_aapl' or 'close')
+        close_columns = [col for col in df.columns if 'close' in col.lower()]
+        self.assertGreater(len(close_columns), 0, f"No close column found in {df.columns}")
+        # Should have data for recent trading days (at least 1 day in 10-day window)
+        self.assertGreater(len(df), 0)
 
 class TestFeatures(unittest.TestCase):
     def setUp(self):

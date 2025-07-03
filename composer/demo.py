@@ -10,6 +10,12 @@ This script demonstrates how to use the composer to:
 
 import pandas as pd
 import numpy as np
+import sys
+import os
+
+# Add the parent directory to the path so we can import from the project root
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from composer import create_composer, get_signals
 
 def create_sample_data():
