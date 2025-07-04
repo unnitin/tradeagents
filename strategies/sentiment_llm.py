@@ -24,9 +24,9 @@ class SentimentLLMStrategy(Strategy):
                 else:  # neutral
                     score = 0.0
                 
-                if score > self.threshold:
-                    signal[idx] = 1
-                elif score < -self.threshold:
-                    signal[idx] = -1
+            if score > self.threshold:
+                signal[idx] = 1
+            elif score < -self.threshold:
+                signal[idx] = -1
 
         return signal

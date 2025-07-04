@@ -165,12 +165,27 @@ jobs:
         
     - name: Create deployment artifact
       run: |
-        tar -czf trading-strategies-${{ github.sha }}.tar.gz \
-          --exclude='.git' \
-          --exclude='venv' \
-          --exclude='__pycache__' \
-          --exclude='*.pyc' \
-          .
+        # Create a clean directory for packaging
+        mkdir -p /tmp/deploy
+        
+        # Copy source files to deployment directory
+        cp -r . /tmp/deploy/trading-strategies
+        
+        # Remove excluded files/directories from deployment copy
+        rm -rf /tmp/deploy/trading-strategies/.git
+        rm -rf /tmp/deploy/trading-strategies/venv
+        rm -rf /tmp/deploy/trading-strategies/.pytest_cache
+        find /tmp/deploy/trading-strategies -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+        find /tmp/deploy/trading-strategies -name "*.pyc" -delete 2>/dev/null || true
+        find /tmp/deploy/trading-strategies -name "*.pyo" -delete 2>/dev/null || true
+        find /tmp/deploy/trading-strategies -name ".DS_Store" -delete 2>/dev/null || true
+        
+        # Create archive from clean copy
+        cd /tmp/deploy
+        tar -czf trading-strategies-${{ github.sha }}.tar.gz trading-strategies/
+        
+        # Move artifact back to workspace
+        mv trading-strategies-${{ github.sha }}.tar.gz ${{ github.workspace }}/
           
     - name: Upload deployment artifact
       uses: actions/upload-artifact@v4
