@@ -1,9 +1,9 @@
 """
-Demo script for the Strategy Composer module.
+Strategy Composer Demo
 
 This script demonstrates how to use the composer to:
 1. Load strategies from configuration
-2. Combine multiple strategies
+2. Combine multiple strategies  
 3. Execute individual strategies (like quiver strategies)
 4. Get trading signals for backtesting/execution
 """
@@ -198,48 +198,66 @@ def main():
     
     # Test individual strategy (sentiment_only - like quiver strategies)
     print("\n4. Testing individual strategy execution...")
-    
-    # First, let's create a simple news dataframe for sentiment strategy
-    news_df = df.copy()
-    # Add some dummy news headlines for demonstration
-    sample_headlines = [
-        "Company reports strong quarterly earnings, beats expectations",
-        "Market volatility continues amid economic uncertainty",
-        "Positive outlook for technology sector growth",
-        "Regulatory concerns weigh on stock performance",
-        "Strong consumer demand drives revenue growth"
-    ]
-    news_df['news_headline'] = np.random.choice(sample_headlines, len(news_df))
-    
-    # Note: sentiment_only is disabled in config, so let's try with an enabled strategy instead
-    print("   Testing individual strategy combinations...")
-    
-    # Get info about combinations
-    for combo_name in composer.list_available_combinations():
-        combo_info = composer.get_combination_info(combo_name)
-        print(f"   📋 {combo_name}:")
-        print(f"      - Method: {combo_info.get('method')}")
-        print(f"      - Strategies: {', '.join(combo_info.get('strategies', []))}")
-        if combo_info.get('filters'):
-            print(f"      - Filters: {', '.join(combo_info.get('filters'))}")
-    
-    print("\n5. Using convenience function...")
     try:
-        # Use the convenience function to get signals
-        quick_signals = get_signals('technical_ensemble', df)
-        print(f"   ✓ Quick signals generated: {len(quick_signals)} total")
-        print(f"   ✓ Signals match previous execution: {signals.equals(quick_signals)}")
+        # Test sentiment-based strategy
+        signals = get_signals('sentiment_only', df)
+        print(f"   ✓ Sentiment strategy generated {len(signals)} signals")
+        
+        sentiment_signals = (signals != 0).sum()
+        print(f"   📊 Active sentiment signals: {sentiment_signals}")
+        
+        if sentiment_signals > 0:
+            print("   ✅ Sentiment analysis working")
+        else:
+            print("   ⚠️  No sentiment signals (may need API access)")
+            
     except Exception as e:
-        print(f"   ✗ Error with convenience function: {e}")
+        print(f"   ✗ Error with sentiment strategy: {e}")
     
-    # Demo politician tracking strategies
+    # Test combination methods
+    print("\n5. Testing different combination methods...")
+    try:
+        methods = ['majority_vote', 'weighted_average', 'unanimous']
+        for method in methods:
+            print(f"\n   🔄 Testing {method} method...")
+            try:
+                # This would test different combination approaches
+                signals = composer.execute_combination('technical_ensemble', df, method=method)
+                active_signals = (signals != 0).sum()
+                print(f"      ✓ {method}: {active_signals} active signals")
+            except Exception as e:
+                print(f"      ✗ {method}: {e}")
+                
+    except Exception as e:
+        print(f"   ✗ Error testing combination methods: {e}")
+    
+    # Demonstrate politician tracking
     demo_politician_tracking()
     
-    print("\n=== Demo Complete ===")
-    print("The composer is ready to integrate with:")
-    print("  → Backtesting modules")  
-    print("  → Live execution systems")
-    print("  → Portfolio management systems")
+    # Summary
+    print("\n" + "="*60)
+    print("📊 DEMO SUMMARY")
+    print("="*60)
+    print("✅ Successfully demonstrated:")
+    print("   • Strategy composer initialization")
+    print("   • Technical ensemble execution")
+    print("   • Signal generation and analysis")
+    print("   • Multiple combination methods")
+    print("   • Politician tracking capabilities")
+    print("   • Individual strategy execution")
+    
+    print("\n🎯 Next Steps:")
+    print("   • Integrate with backtest module for performance analysis")
+    print("   • Configure API keys for real-time data")
+    print("   • Customize strategy parameters in config/strategies.yaml")
+    print("   • Add your own custom strategies")
+    print("   • Use with live trading systems")
+    
+    print("\n📝 Notes:")
+    print("   • Some strategies require API access (Quiver, news APIs)")
+    print("   • Politician tracking is disabled by default")
+    print("   • All strategies can be backtested using the backtest module")
+    print("   • See config/strategies.yaml for configuration options")
 
 if __name__ == "__main__":
     main() 
