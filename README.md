@@ -1,5 +1,15 @@
 # **AstraQuant** 
-Modular AI-Augmented Strategy Engine for Algo Trading
+
+<div align="center">
+
+![CI/CD Pipeline](https://github.com/unnitin/trade/actions/workflows/ci.yml/badge.svg)
+![Quick Tests](https://github.com/unnitin/trade/actions/workflows/quick-test.yml/badge.svg)
+![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
+</div>
+
+**Modular AI-Augmented Strategy Engine for Algo Trading**
 
 ---
 
