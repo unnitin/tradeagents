@@ -10,5 +10,6 @@ This module contains unit tests for individual components:
 __all__ = [
     'test_composer',
     'test_data', 
-    'test_strategies'
+    'test_strategies',
+    'test_backtest'
 ] 
