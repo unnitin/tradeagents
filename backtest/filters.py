@@ -9,26 +9,8 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Any
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from datetime import datetime, time
-
-
-@dataclass
-class FilterConfig:
-    """Configuration for filtering parameters."""
-    min_volume: float = 1000000.0      # Minimum daily trading volume
-    min_price: float = 5.0             # Minimum stock price
-    max_price: Optional[float] = None  # Maximum stock price
-    min_market_cap: Optional[float] = None  # Minimum market capitalization
-    max_volatility: Optional[float] = None  # Maximum volatility threshold
-    exclude_symbols: Optional[List[str]] = None  # Symbols to exclude
-    include_symbols: Optional[List[str]] = None  # Only include these symbols
-    
-    def __post_init__(self):
-        if self.exclude_symbols is None:
-            self.exclude_symbols = []
-        if self.include_symbols is None:
-            self.include_symbols = []
+from config.filter_config import FilterConfig
 
 
 class BaseFilter(ABC):
@@ -100,7 +82,7 @@ class StockFilter(BaseFilter):
         if data.empty:
             return data
         
-        filtered_data = data.copy()
+        filtered_data: pd.DataFrame = data.copy()
         
         # Apply volume filter
         if 'volume' in filtered_data.columns:
