@@ -1,0 +1,308 @@
+# Filter Configuration File
+# This file defines all configurable parameters for filtering stocks and time periods
+
+# Default filter configuration
+default:
+  stock_filter:
+    min_volume: 1000000.0      # Minimum daily trading volume
+    min_price: 5.0             # Minimum stock price
+    max_price: null            # Maximum stock price (null = no limit)
+    min_market_cap: null       # Minimum market cap
+    max_volatility: null       # Maximum volatility threshold
+    exclude_symbols: []        # Symbols to exclude
+    include_symbols: []        # Only include these symbols (empty = all)
+    
+  time_filter:
+    exclude_dates: []          # Dates to exclude (YYYY-MM-DD format)
+    include_dates: []          # Only include these dates (empty = all)
+    start_time: null           # Start time for intraday (HH:MM format)
+    end_time: null             # End time for intraday (HH:MM format)
+    exclude_earnings_periods: false
+    exclude_market_holidays: true
+    min_trading_days: 30       # Minimum trading days required
+    
+  liquidity_filter:
+    min_avg_volume: 1000000.0  # Minimum average daily volume
+    volume_window: 20          # Window for calculating average volume
+    max_bid_ask_spread: null   # Maximum bid-ask spread percentage
+    min_dollar_volume: null    # Minimum dollar volume (price * volume)
+
+# Filter configurations for different scenarios
+configurations:
+
+  # Conservative filtering for large-cap stocks
+  large_cap_conservative:
+    stock_filter:
+      min_volume: 5000000.0    # Higher volume requirement
+      min_price: 20.0          # Higher price floor
+      max_price: 500.0         # Reasonable upper bound
+      min_market_cap: 10000000000  # 10B+ market cap
+      max_volatility: 0.02     # Low volatility (2% ATR)
+      exclude_symbols: 
+        - "TSLA"               # Exclude highly volatile stocks
+        - "GME"
+        - "AMC"
+      include_symbols: []
+      
+    time_filter:
+      exclude_dates: []
+      include_dates: []
+      start_time: "09:45"      # Avoid opening volatility
+      end_time: "15:45"        # Avoid closing volatility
+      exclude_earnings_periods: true
+      exclude_market_holidays: true
+      min_trading_days: 60
+      
+    liquidity_filter:
+      min_avg_volume: 2000000.0
+      volume_window: 30
+      max_bid_ask_spread: 0.001  # 0.1% max spread
+      min_dollar_volume: 50000000  # $50M daily dollar volume
+      
+  # Aggressive filtering for small-cap growth
+  small_cap_aggressive:
+    stock_filter:
+      min_volume: 100000.0     # Lower volume OK
+      min_price: 1.0           # Allow penny stocks
+      max_price: 50.0          # Focus on smaller companies
+      min_market_cap: 100000000  # 100M+ market cap
+      max_volatility: null     # No volatility limit
+      exclude_symbols: []
+      include_symbols: []
+      
+    time_filter:
+      exclude_dates: []
+      include_dates: []
+      start_time: null
+      end_time: null
+      exclude_earnings_periods: false  # Include earnings volatility
+      exclude_market_holidays: true
+      min_trading_days: 20
+      
+    liquidity_filter:
+      min_avg_volume: 500000.0
+      volume_window: 15
+      max_bid_ask_spread: 0.005  # 0.5% max spread
+      min_dollar_volume: 10000000  # $10M daily dollar volume
+      
+  # Day trading filters
+  day_trading:
+    stock_filter:
+      min_volume: 10000000.0   # Very high volume
+      min_price: 5.0
+      max_price: 200.0
+      min_market_cap: 1000000000  # 1B+ market cap
+      max_volatility: null
+      exclude_symbols: []
+      include_symbols: []
+      
+    time_filter:
+      exclude_dates: []
+      include_dates: []
+      start_time: "09:30"      # Full trading day
+      end_time: "16:00"
+      exclude_earnings_periods: false
+      exclude_market_holidays: true
+      min_trading_days: 10     # Recent data only
+      
+    liquidity_filter:
+      min_avg_volume: 5000000.0
+      volume_window: 5         # Short window for recent activity
+      max_bid_ask_spread: 0.0005  # Very tight spreads
+      min_dollar_volume: 100000000  # $100M daily dollar volume
+      
+  # ETF-focused filtering
+  etf_portfolio:
+    stock_filter:
+      min_volume: 1000000.0
+      min_price: 10.0
+      max_price: 500.0
+      min_market_cap: null
+      max_volatility: 0.015    # Low volatility ETFs
+      exclude_symbols: []
+      include_symbols:         # Common ETF symbols
+        - "SPY"
+        - "QQQ"
+        - "VTI"
+        - "IWM"
+        - "EFA"
+        - "EEM"
+        - "TLT"
+        - "GLD"
+        - "XLF"
+        - "XLE"
+        
+    time_filter:
+      exclude_dates: []
+      include_dates: []
+      start_time: null
+      end_time: null
+      exclude_earnings_periods: false  # ETFs don't have earnings
+      exclude_market_holidays: true
+      min_trading_days: 90     # Long-term data
+      
+    liquidity_filter:
+      min_avg_volume: 5000000.0
+      volume_window: 30
+      max_bid_ask_spread: 0.0001  # Very tight spreads for ETFs
+      min_dollar_volume: 100000000
+      
+  # Cryptocurrency-style filtering (for crypto ETFs)
+  crypto_etf:
+    stock_filter:
+      min_volume: 1000000.0
+      min_price: 5.0
+      max_price: null
+      min_market_cap: null
+      max_volatility: null     # Allow high volatility
+      exclude_symbols: []
+      include_symbols:
+        - "BITO"               # Bitcoin ETF
+        - "COIN"               # Coinbase
+        - "MSTR"               # MicroStrategy
+        - "RIOT"               # Riot Blockchain
+        - "MARA"               # Marathon Digital
+        
+    time_filter:
+      exclude_dates: []
+      include_dates: []
+      start_time: null
+      end_time: null
+      exclude_earnings_periods: false
+      exclude_market_holidays: true
+      min_trading_days: 30
+      
+    liquidity_filter:
+      min_avg_volume: 2000000.0
+      volume_window: 20
+      max_bid_ask_spread: 0.002  # 0.2% max spread
+      min_dollar_volume: 25000000
+      
+  # No filtering (for testing)
+  no_filter:
+    stock_filter:
+      min_volume: 0.0
+      min_price: 0.01
+      max_price: null
+      min_market_cap: null
+      max_volatility: null
+      exclude_symbols: []
+      include_symbols: []
+      
+    time_filter:
+      exclude_dates: []
+      include_dates: []
+      start_time: null
+      end_time: null
+      exclude_earnings_periods: false
+      exclude_market_holidays: false
+      min_trading_days: 1
+      
+    liquidity_filter:
+      min_avg_volume: 0.0
+      volume_window: 1
+      max_bid_ask_spread: null
+      min_dollar_volume: null
+
+# Filter combinations
+combinations:
+  # Conservative: Multiple filters with AND logic
+  conservative_multi:
+    filters:
+      - large_cap_conservative
+      - liquidity_strict
+    logic: "AND"
+    
+  # Flexible: Multiple filters with OR logic
+  flexible_multi:
+    filters:
+      - small_cap_aggressive
+      - day_trading
+    logic: "OR"
+    
+  # Custom filter combinations
+  custom_tech_focused:
+    stock_filter:
+      min_volume: 2000000.0
+      min_price: 10.0
+      max_price: 300.0
+      min_market_cap: 5000000000  # 5B+ market cap
+      max_volatility: 0.03
+      exclude_symbols: []
+      include_symbols:
+        - "AAPL"
+        - "MSFT"
+        - "GOOGL"
+        - "AMZN"
+        - "META"
+        - "NVDA"
+        - "TSLA"
+        - "NFLX"
+        
+    time_filter:
+      exclude_dates: []
+      include_dates: []
+      start_time: "10:00"
+      end_time: "15:30"
+      exclude_earnings_periods: true
+      exclude_market_holidays: true
+      min_trading_days: 45
+      
+    liquidity_filter:
+      min_avg_volume: 10000000.0
+      volume_window: 25
+      max_bid_ask_spread: 0.0005
+      min_dollar_volume: 200000000
+
+# Validation rules
+validation:
+  stock_filter:
+    min_volume:
+      min: 0.0
+      max: 100000000.0
+    min_price:
+      min: 0.01
+      max: 10000.0
+    max_price:
+      min: 0.01
+      max: 100000.0
+    max_volatility:
+      min: 0.001
+      max: 1.0
+      
+  time_filter:
+    min_trading_days:
+      min: 1
+      max: 1000
+      
+  liquidity_filter:
+    min_avg_volume:
+      min: 0.0
+      max: 100000000.0
+    volume_window:
+      min: 1
+      max: 252
+    max_bid_ask_spread:
+      min: 0.0001
+      max: 0.1
+    min_dollar_volume:
+      min: 0.0
+      max: 10000000000.0
+
+# Global filter settings
+settings:
+  # Default combination logic
+  default_logic: "AND"
+  
+  # Performance settings
+  cache_filter_results: true
+  cache_duration_days: 1
+  
+  # Logging
+  log_filter_results: false
+  log_rejected_symbols: false
+  
+  # Warnings
+  warn_empty_results: true
+  warn_high_rejection_rate: true
+  rejection_rate_threshold: 0.8  # Warn if >80% symbols rejected 
