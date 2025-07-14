@@ -115,7 +115,7 @@ results = engine.run_backtest(
 )
 
 # Advanced with filters and composer
-from backtest import StockFilter, TimeFilter
+from filters import StockFilter, TimeFilter
 from composer import create_composer
 
 stock_filter = StockFilter(min_volume=1000000, min_price=10)
@@ -238,9 +238,9 @@ tests/
 
 examples/
 ├── backtest_example.py → Basic usage ✅
-├── backtest_showcase.py → Advanced features ✅
+├── backtest_comprehensive_example.py → Advanced features ✅
 ├── composer_backtest_example.py → Strategy combinations ✅
-└── config_demo.py → Configuration examples ✅
+└── config_example.py → Configuration examples ✅
 ```
 
 #### **✅ Code Quality Achievements**
@@ -371,7 +371,7 @@ alerts = tracker.create_twitter_alerts()
 source venv/bin/activate
 
 # Demo all options
-python examples/easy_politician_tracking.py
+python examples/politician_tracking_example.py
 
 # Test Twitter tracker
 python data/twitter_politician_tracker.py
@@ -429,11 +429,11 @@ astraquant/                 # 🚀 Production-ready algo trading engine
 │
 ├── 📚 examples/          # ✅ **NEW!** Complete usage demonstrations
 │   ├── backtest_example.py # 🎯 Basic backtesting tutorial
-│   ├── backtest_showcase.py # 🎪 Advanced features demonstration
+│   ├── backtest_comprehensive_example.py # 🎪 Advanced features demonstration
 │   ├── composer_backtest_example.py # 🎼 Strategy combination examples
-│   ├── config_demo.py     # ⚙️ Configuration system tutorial
-│   ├── strategy_composer_demo.py # 🎭 Composer functionality demo
-│   └── easy_politician_tracking.py # 🏛️ Political trade tracking
+│   ├── config_example.py     # ⚙️ Configuration system tutorial
+│   ├── strategy_composer_example.py # 🎭 Composer functionality demo
+│   └── politician_tracking_example.py # 🏛️ Political trade tracking
 │
 ├── 📊 data/              # Data ingestion and processing
 │   ├── fetch_data.py      # 📥 Market data retrieval
@@ -468,13 +468,13 @@ pip install -r requirements.txt
 python examples/backtest_example.py
 
 # 3. Try advanced features
-python examples/backtest_showcase.py
+python examples/backtest_comprehensive_example.py
 
 # 4. Test strategy combinations
 python examples/composer_backtest_example.py
 
 # 5. Explore configuration options
-python examples/config_demo.py
+python examples/config_example.py
 ```
 
 #### **Run Tests**

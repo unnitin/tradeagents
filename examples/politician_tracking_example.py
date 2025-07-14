@@ -1,4 +1,4 @@
-# examples/easy_politician_tracking.py
+# examples/politician_tracking_example.py
 
 """
 EASY POLITICIAN TRADE TRACKING GUIDE

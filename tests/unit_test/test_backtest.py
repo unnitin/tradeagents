@@ -28,7 +28,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from config import BacktestConfig, BacktestConfigManager
 from backtest.portfolio import Portfolio, Position
 from backtest.metrics import PerformanceMetrics, calculate_performance_metrics
-from backtest.filters import StockFilter, TimeFilter, LiquidityFilter, CompositeFilter
+from filters import StockFilter, TimeFilter, LiquidityFilter, CompositeFilter
 from backtest.results import BacktestResults
 from backtest.engine import BacktestEngine
 

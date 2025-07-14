@@ -11,6 +11,7 @@ from strategies import (
     ATRVolatilityFilter, BollingerBounce, MACDCross, 
     RSIReversion, SMACrossover, get_all_strategies
 )
+from filters import StockFilter, TimeFilter, LiquidityFilter, CompositeFilter
 
 
 class TestStrategiesBasic(unittest.TestCase):
@@ -311,6 +312,332 @@ class TestStrategiesDetailed(unittest.TestCase):
         self.assertEqual(signals.iloc[9], -1, "Price above upper band should generate sell signal")
 
 
+class TestAdvancedFiltering(unittest.TestCase):
+    """Test advanced filtering capabilities added to the base Strategy class."""
+    
+    def setUp(self):
+        """Create sample data for filtering tests."""
+        np.random.seed(42)  # For reproducible tests
+        
+        # Create multi-symbol data
+        dates = pd.date_range('2023-01-01', periods=100, freq='D')
+        symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'SPY']
+        
+        data = []
+        for symbol in symbols:
+            symbol_data = pd.DataFrame({
+                'date': dates,
+                'symbol': symbol,
+                'close': np.random.uniform(100, 200, 100),
+                'volume': np.random.uniform(1000000, 10000000, 100),
+                'high': np.random.uniform(200, 250, 100),
+                'low': np.random.uniform(50, 100, 100)
+            })
+            data.append(symbol_data)
+        
+        self.multi_symbol_df = pd.concat(data, ignore_index=True)
+        
+        # Create single symbol data with technical indicators
+        self.single_symbol_df = pd.DataFrame({
+            'date': dates,
+            'close': np.random.uniform(100, 200, 100),
+            'volume': np.random.uniform(1000000, 10000000, 100),
+            'high': np.random.uniform(200, 250, 100),
+            'low': np.random.uniform(50, 100, 100)
+        })
+        
+        # Add required technical indicators
+        self.single_symbol_df['sma_10'] = self.single_symbol_df['close'].rolling(10).mean()
+        self.single_symbol_df['sma_20'] = self.single_symbol_df['close'].rolling(20).mean()
+        self.single_symbol_df['rsi_14'] = np.random.uniform(10, 90, 100)
+        
+        # Strategy for testing
+        self.strategy = SMACrossover(fast=10, slow=20)
+        
+    def test_basic_filtering_methods(self):
+        """Test basic filtering methods: set_filters, add_filter."""
+        # Test set_filters
+        volume_filter = StockFilter(min_volume=2000000)
+        price_filter = StockFilter(min_price=120)
+        
+        self.strategy.set_filters([volume_filter, price_filter], logic="AND")
+        
+        self.assertEqual(len(self.strategy.filters), 2)
+        self.assertEqual(self.strategy.filter_logic, "AND")
+        
+        # Test add_filter
+        liquidity_filter = LiquidityFilter(min_avg_volume=1500000)
+        self.strategy.add_filter(liquidity_filter)
+        
+        self.assertEqual(len(self.strategy.filters), 3)
+        
+        # Test filter info
+        filter_info = self.strategy.get_filter_info()
+        self.assertEqual(filter_info['filter_count'], 3)
+        self.assertEqual(filter_info['logic'], 'AND')
+        
+    def test_symbol_specific_filtering(self):
+        """Test symbol-specific filtering methods."""
+        # Test set_symbol_filters
+        symbol_filters = {
+            'AAPL': [StockFilter(min_volume=5000000)],
+            'GOOGL': [StockFilter(min_price=150)],
+            'MSFT': [StockFilter(max_price=180)]
+        }
+        
+        self.strategy.set_symbol_filters(symbol_filters)
+        
+        self.assertEqual(len(self.strategy.symbol_filters), 3)
+        self.assertIn('AAPL', self.strategy.symbol_filters)
+        self.assertIn('GOOGL', self.strategy.symbol_filters)
+        self.assertIn('MSFT', self.strategy.symbol_filters)
+        
+        # Test add_symbol_filter
+        self.strategy.add_symbol_filter('TSLA', StockFilter(min_volume=3000000))
+        
+        self.assertEqual(len(self.strategy.symbol_filters), 4)
+        self.assertIn('TSLA', self.strategy.symbol_filters)
+        
+    def test_dynamic_filtering(self):
+        """Test dynamic filtering methods."""
+        # Test set_dynamic_filters
+        dynamic_filters = [
+            StockFilter(min_volume=2000000),
+            TimeFilter(exclude_market_holidays=True)
+        ]
+        
+        self.strategy.set_dynamic_filters(dynamic_filters)
+        
+        self.assertEqual(len(self.strategy.dynamic_filters), 2)
+        
+    def test_configuration_based_filtering(self):
+        """Test configuration-based filtering from config dict."""
+        filter_config = {
+            'stock_filter': {
+                'min_volume': 1500000,
+                'min_price': 50,
+                'max_price': 300
+            },
+            'time_filter': {
+                'exclude_market_holidays': True,
+                'min_trading_days': 20
+            },
+            'liquidity_filter': {
+                'min_avg_volume': 1000000,
+                'volume_window': 20
+            },
+            'logic': 'AND'
+        }
+        
+        self.strategy.configure_filters_from_config(filter_config)
+        
+        # Should have created 3 filters
+        self.assertEqual(len(self.strategy.filters), 3)
+        self.assertEqual(self.strategy.filter_logic, 'AND')
+        
+        # Should have stored config
+        self.assertEqual(self.strategy.filter_config, filter_config)
+        
+    def test_generate_signals_with_filters(self):
+        """Test basic signal generation with filters."""
+        # Add a simple filter
+        volume_filter = StockFilter(min_volume=2000000)
+        self.strategy.set_filters([volume_filter])
+        
+        # Generate signals with filters
+        signals = self.strategy.generate_signals_with_filters(self.single_symbol_df)
+        
+        # Should return a pandas Series
+        self.assertIsInstance(signals, pd.Series)
+        
+        # Should have same length as input
+        self.assertEqual(len(signals), len(self.single_symbol_df))
+        
+        # Should contain valid signal values
+        unique_signals = set(signals.unique())
+        self.assertTrue(unique_signals.issubset({-1, 0, 1}))
+        
+    def test_generate_signals_with_advanced_filters(self):
+        """Test advanced signal generation with multi-level filtering."""
+        # Set up all types of filters
+        base_filter = StockFilter(min_volume=1000000)
+        self.strategy.set_filters([base_filter])
+        
+        symbol_filters = {
+            'AAPL': [StockFilter(min_volume=2000000)]
+        }
+        self.strategy.set_symbol_filters(symbol_filters)
+        
+        dynamic_filters = [StockFilter(min_price=100)]
+        self.strategy.set_dynamic_filters(dynamic_filters)
+        
+        # Generate signals with advanced filters
+        signals = self.strategy.generate_signals_with_advanced_filters(self.single_symbol_df)
+        
+        # Should return a pandas Series
+        self.assertIsInstance(signals, pd.Series)
+        
+        # Should have same length as input
+        self.assertEqual(len(signals), len(self.single_symbol_df))
+        
+        # Should contain valid signal values
+        unique_signals = set(signals.unique())
+        self.assertTrue(unique_signals.issubset({-1, 0, 1}))
+        
+    def test_filter_validation(self):
+        """Test filter validation functionality."""
+        # Create a custom strategy with filter requirements
+        class TestStrategy(SMACrossover):
+            def get_filter_requirements(self):
+                return {
+                    "required": ["StockFilter"],
+                    "optional": ["TimeFilter", "LiquidityFilter"]
+                }
+        
+        test_strategy = TestStrategy(fast=10, slow=20)
+        
+        # Should fail validation initially (no required filters)
+        self.assertFalse(test_strategy.validate_filters())
+        
+        # Add required filter
+        test_strategy.add_filter(StockFilter(min_volume=1000000))
+        
+        # Should pass validation now
+        self.assertTrue(test_strategy.validate_filters())
+        
+    def test_filter_analytics(self):
+        """Test comprehensive filter analytics."""
+        # Set up complex filter configuration
+        self.strategy.set_filters([StockFilter(min_volume=1000000)])
+        
+        self.strategy.set_symbol_filters({
+            'AAPL': [StockFilter(min_volume=2000000)],
+            'GOOGL': [StockFilter(min_price=150)]
+        })
+        
+        self.strategy.set_dynamic_filters([TimeFilter(exclude_market_holidays=True)])
+        
+        # Test basic filter info
+        basic_info = self.strategy.get_filter_info()
+        self.assertEqual(basic_info['filter_count'], 1)
+        self.assertEqual(basic_info['logic'], 'AND')
+        
+        # Test advanced filter info
+        advanced_info = self.strategy.get_advanced_filter_info()
+        
+        self.assertIn('base_filters', advanced_info)
+        self.assertIn('symbol_filters', advanced_info)
+        self.assertIn('dynamic_filters', advanced_info)
+        
+        # Should have correct counts
+        self.assertEqual(len(advanced_info['symbol_filters']), 2)
+        self.assertEqual(len(advanced_info['dynamic_filters']), 1)
+        
+    def test_filter_requirements_default(self):
+        """Test default filter requirements implementation."""
+        requirements = self.strategy.get_filter_requirements()
+        
+        # Default implementation should return empty requirements
+        self.assertEqual(requirements['required'], [])
+        self.assertEqual(requirements['optional'], [])
+        
+    def test_empty_filter_handling(self):
+        """Test that strategies handle empty filters gracefully."""
+        # Test with no filters
+        signals = self.strategy.generate_signals_with_filters(self.single_symbol_df)
+        self.assertEqual(len(signals), len(self.single_symbol_df))
+        
+        # Test advanced signals with no filters
+        advanced_signals = self.strategy.generate_signals_with_advanced_filters(self.single_symbol_df)
+        self.assertEqual(len(advanced_signals), len(self.single_symbol_df))
+        
+        # Both should be equivalent when no filters are applied
+        pd.testing.assert_series_equal(signals, advanced_signals, check_names=False)
+        
+    def test_filter_logic_combination(self):
+        """Test AND/OR logic combinations."""
+        # Test AND logic
+        self.strategy.set_filters([
+            StockFilter(min_volume=1000000),
+            StockFilter(min_price=100)
+        ], logic="AND")
+        
+        self.assertEqual(self.strategy.filter_logic, "AND")
+        
+        # Test OR logic
+        self.strategy.set_filters([
+            StockFilter(min_volume=1000000),
+            StockFilter(min_price=100)
+        ], logic="OR")
+        
+        self.assertEqual(self.strategy.filter_logic, "OR")
+        
+    def test_filter_persistence(self):
+        """Test that filter configurations persist correctly."""
+        # Set up filters
+        original_filters = [StockFilter(min_volume=1000000)]
+        self.strategy.set_filters(original_filters)
+        
+        # Filters should persist
+        self.assertEqual(len(self.strategy.filters), 1)
+        
+        # Add more filters
+        self.strategy.add_filter(StockFilter(min_price=100))
+        
+        # Should have both filters
+        self.assertEqual(len(self.strategy.filters), 2)
+        
+    def test_all_strategies_have_filter_methods(self):
+        """Test that all strategy classes have the new filter methods."""
+        strategies = [
+            SMACrossover(fast=10, slow=20),
+            RSIReversion(rsi_col="rsi_14", low_thresh=30, high_thresh=70),
+            MACDCross(macd_col="macd", signal_col="macd_signal"),
+            BollingerBounce(bb_window=20),
+            ATRVolatilityFilter(atr_col="atr_14", window=50)
+        ]
+        
+        required_methods = [
+            'set_filters', 'add_filter', 'set_symbol_filters', 'add_symbol_filter',
+            'set_dynamic_filters', 'configure_filters_from_config',
+            'generate_signals_with_filters', 'generate_signals_with_advanced_filters',
+            'get_filter_info', 'get_advanced_filter_info', 'validate_filters',
+            'get_filter_requirements'
+        ]
+        
+        for strategy in strategies:
+            strategy_name = type(strategy).__name__
+            for method_name in required_methods:
+                with self.subTest(strategy=strategy_name, method=method_name):
+                    self.assertTrue(hasattr(strategy, method_name),
+                                  f"{strategy_name} should have {method_name} method")
+                    
+    def test_filter_edge_cases(self):
+        """Test edge cases in filtering."""
+        # Test with empty DataFrame
+        empty_df = pd.DataFrame()
+        self.strategy.set_filters([StockFilter(min_volume=1000000)])
+        
+        signals = self.strategy.generate_signals_with_filters(empty_df)
+        self.assertEqual(len(signals), 0)
+        
+        # Test with DataFrame that gets completely filtered out
+        filtered_out_df = pd.DataFrame({
+            'close': [50, 60, 70],
+            'volume': [100, 200, 300],  # Very low volume
+            'sma_10': [55, 65, 75],
+            'sma_20': [60, 70, 80]
+        })
+        
+        high_volume_filter = StockFilter(min_volume=1000000)
+        self.strategy.set_filters([high_volume_filter])
+        
+        signals = self.strategy.generate_signals_with_filters(filtered_out_df)
+        
+        # Should return all zeros when everything is filtered out
+        self.assertTrue((signals == 0).all())
+
+
 def run_all_tests():
     """Run all strategy tests and return results."""
     # Create test suite
@@ -320,6 +647,7 @@ def run_all_tests():
     # Add test classes
     suite.addTests(loader.loadTestsFromTestCase(TestStrategiesBasic))
     suite.addTests(loader.loadTestsFromTestCase(TestStrategiesDetailed))
+    suite.addTests(loader.loadTestsFromTestCase(TestAdvancedFiltering))
     
     # Run tests
     runner = unittest.TextTestRunner(verbosity=2)

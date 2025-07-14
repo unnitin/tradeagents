@@ -3,6 +3,7 @@ from .base import Strategy
 
 class BollingerBounce(Strategy):
     def __init__(self, bb_window: int = 20):
+        super().__init__()
         self.lower = f"bb_lower_{bb_window}"
         self.upper = f"bb_upper_{bb_window}"
 

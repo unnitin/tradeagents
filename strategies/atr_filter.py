@@ -3,6 +3,7 @@ from .base import Strategy
 
 class ATRVolatilityFilter(Strategy):
     def __init__(self, atr_col: str = "atr_14", window: int = 50):
+        super().__init__()
         self.atr_col = atr_col
         self.window = window
 

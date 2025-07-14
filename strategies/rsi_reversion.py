@@ -3,6 +3,7 @@ from .base import Strategy
 
 class RSIReversion(Strategy):
     def __init__(self, rsi_col: str = "rsi_14", low_thresh: float = 30, high_thresh: float = 70):
+        super().__init__()
         self.rsi_col = rsi_col
         self.low = low_thresh
         self.high = high_thresh

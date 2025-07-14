@@ -24,7 +24,8 @@ import os
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from backtest import create_backtest_engine, BacktestConfig, StockFilter, TimeFilter
+from backtest import create_backtest_engine, BacktestConfig
+from filters import StockFilter, TimeFilter
 from backtest.results import compare_multiple_results
 from strategies import SMACrossover, RSIReversion, MACDCross
 from composer import create_composer

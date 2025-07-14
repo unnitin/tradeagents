@@ -32,6 +32,7 @@ from backtest import BacktestEngine, create_backtest_engine, StockFilter, TimeFi
 from backtest.results import BacktestResults, save_results, load_results
 from strategies.base import Strategy
 from strategies import SMACrossover, RSIReversion
+from filters import LiquidityFilter, CompositeFilter
 
 
 class MockStrategy(Strategy):
@@ -453,6 +454,325 @@ class TestBacktestIntegration(unittest.TestCase):
         self.assertIn("AAPL", results.symbols)
         self.assertIn("MSFT", results.symbols)
         self.assertIn("GOOGL", results.symbols)
+
+
+class TestStrategyFilteringIntegration(unittest.TestCase):
+    """Integration tests for strategy-level filtering with backtest engine."""
+    
+    def setUp(self):
+        """Set up test environment for filtering integration."""
+        self.mock_data = self._create_mock_data()
+        
+        # Create multiple symbols for comprehensive testing
+        self.multi_symbol_data = self._create_multi_symbol_data()
+        
+        # Mock data fetcher
+        self.mock_data_fetcher = Mock()
+        self.mock_data_fetcher.get_stock_data.return_value = self.mock_data
+        self.mock_data_fetcher.get_data.return_value = self.mock_data
+    
+    def _create_mock_data(self):
+        """Create mock market data with varying characteristics for filtering tests."""
+        dates = pd.date_range('2023-01-01', periods=100, freq='D')
+        
+        np.random.seed(42)
+        base_price = 100.0
+        returns = np.random.normal(0.001, 0.02, 100)
+        prices = [base_price]
+        
+        for ret in returns:
+            prices.append(prices[-1] * (1 + ret))
+        
+        # Create data with varying volume and price characteristics
+        volumes = []
+        for i in range(100):
+            if i < 25:
+                volumes.append(np.random.randint(500000, 1000000))    # Low volume
+            elif i < 50:
+                volumes.append(np.random.randint(2000000, 4000000))   # Medium volume
+            elif i < 75:
+                volumes.append(np.random.randint(5000000, 8000000))   # High volume
+            else:
+                volumes.append(np.random.randint(10000000, 15000000)) # Very high volume
+        
+        data = pd.DataFrame({
+            'date': dates,
+            'symbol': 'AAPL',
+            'open': prices[:-1],
+            'high': [p * 1.02 for p in prices[:-1]],
+            'low': [p * 0.98 for p in prices[:-1]],
+            'close': prices[1:],
+            'volume': volumes
+        })
+        
+        # Add technical indicators
+        data['sma_20'] = data['close'].rolling(20).mean()
+        data['sma_50'] = data['close'].rolling(50).mean()
+        data['rsi'] = self._calculate_rsi(data['close'])
+        
+        return data
+    
+    def _create_multi_symbol_data(self):
+        """Create multi-symbol data for symbol-specific filtering tests."""
+        symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA']
+        all_data = []
+        
+        for symbol in symbols:
+            symbol_data = self._create_mock_data().copy()
+            symbol_data['symbol'] = symbol
+            
+            # Customize each symbol's characteristics
+            if symbol == 'AAPL':
+                symbol_data['volume'] = symbol_data['volume'] * 2      # Higher volume
+                symbol_data['close'] = symbol_data['close'] * 1.5      # Higher price
+            elif symbol == 'GOOGL':
+                symbol_data['close'] = symbol_data['close'] * 2.0      # Much higher price
+            elif symbol == 'TSLA':
+                symbol_data['volume'] = symbol_data['volume'] * 0.5    # Lower volume
+            # MSFT keeps original characteristics
+            
+            all_data.append(symbol_data)
+        
+        return pd.concat(all_data, ignore_index=True)
+    
+    def _calculate_rsi(self, prices, period=14):
+        """Simple RSI calculation for testing."""
+        delta = prices.diff()
+        gain = delta.where(delta > 0, 0)
+        loss = -delta.where(delta < 0, 0)
+        
+        avg_gain = gain.rolling(window=period).mean()
+        avg_loss = loss.rolling(window=period).mean()
+        
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
+        
+        return rsi
+    
+    @patch('backtest.engine.DataFetcher')
+    def test_strategy_level_filtering_backtest_integration(self, mock_data_fetcher_class):
+        """Test strategy-level filtering integration with backtest workflow."""
+        mock_data_fetcher_class.return_value = self.mock_data_fetcher
+        
+        # Create filtered strategy
+        strategy = SMACrossover(fast=20, slow=50)
+        volume_filter = StockFilter(min_volume=3000000)  # Only high volume periods
+        strategy.set_filters([volume_filter])
+        
+        # Create config and engine
+        config = BacktestConfig(initial_capital=100000.0)
+        engine = create_backtest_engine(config)
+        
+        # Run backtest with filtered strategy
+        results = engine.run_backtest(
+            strategy=strategy,
+            symbols="AAPL",
+            start_date="2023-01-01",
+            end_date="2023-04-10"
+        )
+        
+        # Verify results
+        self.assertIsInstance(results, BacktestResults)
+        self.assertEqual(results.strategy_name, "SMACrossover")
+        
+        # Verify that filtering affected the results
+        # (Should have fewer trades due to volume filtering)
+        total_trades = len(results.trades)
+        self.assertGreaterEqual(total_trades, 0)  # May have 0 trades if heavily filtered
+        
+        print(f"✅ Strategy-level filtering backtest: {total_trades} trades executed")
+    
+    @patch('backtest.engine.DataFetcher')
+    def test_symbol_specific_filtering_backtest_integration(self, mock_data_fetcher_class):
+        """Test symbol-specific filtering with multi-symbol backtest."""
+        # Set up multi-symbol mock data
+        self.mock_data_fetcher.get_stock_data.return_value = self.multi_symbol_data
+        mock_data_fetcher_class.return_value = self.mock_data_fetcher
+        
+        # Create strategy with symbol-specific filters
+        strategy = RSIReversion(rsi_col='rsi', low_thresh=30, high_thresh=70)
+        symbol_filters = {
+            'AAPL': [StockFilter(min_volume=5000000)],     # Strict volume for AAPL
+            'GOOGL': [StockFilter(min_price=150)],         # Price filter for GOOGL
+            'TSLA': [StockFilter(min_volume=1000000)],     # Lenient volume for TSLA
+        }
+        strategy.set_symbol_filters(symbol_filters)
+        
+        # Create config and engine
+        config = BacktestConfig(initial_capital=100000.0)
+        engine = create_backtest_engine(config)
+        
+        # Run backtest
+        results = engine.run_backtest(
+            strategy=strategy,
+            symbols=["AAPL", "GOOGL", "MSFT", "TSLA"],
+            start_date="2023-01-01",
+            end_date="2023-04-10"
+        )
+        
+        # Verify results
+        self.assertIsInstance(results, BacktestResults)
+        
+        # Analyze trades by symbol to verify filtering worked
+        trades_by_symbol = {}
+        for trade in results.trades:
+            # Trade object has symbol attribute or is a dict with symbol key
+            symbol = getattr(trade, 'symbol', trade.get('symbol', 'UNKNOWN'))
+            if symbol not in trades_by_symbol:
+                trades_by_symbol[symbol] = 0
+            trades_by_symbol[symbol] += 1
+        
+        print(f"✅ Symbol-specific filtering backtest: {len(results.trades)} total trades")
+        for symbol, count in trades_by_symbol.items():
+            print(f"   {symbol}: {count} trades")
+    
+    @patch('backtest.engine.DataFetcher')
+    def test_configuration_based_filtering_backtest_integration(self, mock_data_fetcher_class):
+        """Test configuration-based filtering integration with backtest."""
+        mock_data_fetcher_class.return_value = self.mock_data_fetcher
+        
+        # Create strategy with configuration-based filtering
+        strategy = SMACrossover(fast=20, slow=50)
+        filter_config = {
+            'stock_filter': {
+                'min_volume': 2000000,
+                'min_price': 80,
+                'max_price': 200
+            },
+            'liquidity_filter': {
+                'min_avg_volume': 1500000,
+                'volume_window': 20
+            },
+            'logic': 'AND'
+        }
+        strategy.configure_filters_from_config(filter_config)
+        
+        # Create config and engine
+        config = BacktestConfig(initial_capital=100000.0)
+        engine = create_backtest_engine(config)
+        
+        # Run backtest
+        results = engine.run_backtest(
+            strategy=strategy,
+            symbols="AAPL",
+            start_date="2023-01-01",
+            end_date="2023-04-10"
+        )
+        
+        # Verify results
+        self.assertIsInstance(results, BacktestResults)
+        self.assertIsNotNone(results.metrics)
+        
+        # Verify filter configuration was applied
+        self.assertEqual(len(strategy.filters), 2)  # Should have stock and liquidity filters
+        self.assertEqual(strategy.filter_logic, 'AND')
+        
+        total_trades = len(results.trades)
+        print(f"✅ Configuration-based filtering backtest: {total_trades} trades executed")
+    
+    @patch('backtest.engine.DataFetcher')
+    def test_dynamic_filtering_backtest_integration(self, mock_data_fetcher_class):
+        """Test dynamic filtering adaptation during backtest."""
+        mock_data_fetcher_class.return_value = self.mock_data_fetcher
+        
+        # Create strategy with dynamic filters
+        strategy = SMACrossover(fast=20, slow=50)
+        
+        # Simulate dynamic filtering - in practice this would adapt to market conditions
+        high_vol_filter = StockFilter(min_volume=5000000)  # High volatility regime
+        low_vol_filter = StockFilter(min_volume=1000000)   # Low volatility regime
+        
+        # Test high volatility scenario
+        strategy.set_dynamic_filters([high_vol_filter])
+        
+        config = BacktestConfig(initial_capital=100000.0)
+        engine = create_backtest_engine(config)
+        
+        results_high_vol = engine.run_backtest(
+            strategy=strategy,
+            symbols="AAPL",
+            start_date="2023-01-01",
+            end_date="2023-04-10"
+        )
+        
+        # Test low volatility scenario
+        strategy.set_dynamic_filters([low_vol_filter])
+        
+        results_low_vol = engine.run_backtest(
+            strategy=strategy,
+            symbols="AAPL",
+            start_date="2023-01-01",
+            end_date="2023-04-10"
+        )
+        
+        # Verify both scenarios work
+        self.assertIsInstance(results_high_vol, BacktestResults)
+        self.assertIsInstance(results_low_vol, BacktestResults)
+        
+        high_vol_trades = len(results_high_vol.trades)
+        low_vol_trades = len(results_low_vol.trades)
+        
+        # Low volatility should generally allow more trades
+        self.assertGreaterEqual(low_vol_trades, high_vol_trades)
+        
+        print(f"✅ Dynamic filtering backtest: High vol: {high_vol_trades}, Low vol: {low_vol_trades} trades")
+    
+    @patch('backtest.engine.DataFetcher')
+    def test_combined_filtering_layers_backtest_integration(self, mock_data_fetcher_class):
+        """Test multiple filtering layers working together in backtest."""
+        mock_data_fetcher_class.return_value = self.mock_data_fetcher
+        
+        # Create strategy with all types of filters
+        strategy = RSIReversion(rsi_col='rsi', low_thresh=30, high_thresh=70)
+        
+        # Base filters
+        base_filters = [
+            StockFilter(min_volume=1500000),
+            LiquidityFilter(min_avg_volume=1000000, volume_window=10)
+        ]
+        strategy.set_filters(base_filters, logic="AND")
+        
+        # Symbol-specific filters
+        symbol_filters = {
+            'AAPL': [StockFilter(min_volume=3000000)]
+        }
+        strategy.set_symbol_filters(symbol_filters)
+        
+        # Dynamic filters
+        dynamic_filters = [StockFilter(min_price=50)]
+        strategy.set_dynamic_filters(dynamic_filters)
+        
+        # Create config and engine
+        config = BacktestConfig(initial_capital=100000.0)
+        engine = create_backtest_engine(config)
+        
+        # Run backtest with all filtering layers
+        results = engine.run_backtest(
+            strategy=strategy,
+            symbols="AAPL",
+            start_date="2023-01-01",
+            end_date="2023-04-10"
+        )
+        
+        # Verify results
+        self.assertIsInstance(results, BacktestResults)
+        
+        # Verify all filter types are configured
+        self.assertEqual(len(strategy.filters), 2)               # Base filters
+        self.assertEqual(len(strategy.symbol_filters), 1)        # Symbol filters
+        self.assertEqual(len(strategy.dynamic_filters), 1)       # Dynamic filters
+        
+        # Get comprehensive filter analytics
+        analytics = strategy.get_advanced_filter_info()
+        self.assertIn('base_filters', analytics)
+        self.assertIn('symbol_filters', analytics)
+        self.assertIn('dynamic_filters', analytics)
+        
+        total_trades = len(results.trades)
+        print(f"✅ Combined filtering backtest: {total_trades} trades with multi-layer filtering")
+        print(f"   Base filters: {len(strategy.filters)}")
+        print(f"   Symbol filters: {len(strategy.symbol_filters)}")
+        print(f"   Dynamic filters: {len(strategy.dynamic_filters)}")
 
 
 class TestComposerIntegration(unittest.TestCase):

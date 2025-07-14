@@ -144,7 +144,7 @@ for name, result in results.items():
 ### **Advanced Filtering and Analysis**
 ```python
 # Use advanced filters
-from backtest import StockFilter, TimeFilter
+from filters import StockFilter, TimeFilter
 
 # Filter for high-volume, stable stocks
 stock_filter = StockFilter(
@@ -230,7 +230,7 @@ results = engine.run_backtest(
 ### Implementation Files
 - `../data/politician_trades_live.py`: Live API integration
 - `../data/twitter_politician_tracker.py`: Twitter monitoring
-- `../examples/easy_politician_tracking.py`: Complete examples
+- `../examples/politician_tracking_example.py`: Complete examples
 
 ---
 
@@ -246,7 +246,7 @@ python tests/test_backtest_runner.py
 
 # Run backtest examples
 python examples/backtest_example.py
-python examples/backtest_showcase.py
+python examples/backtest_comprehensive_example.py
 ```
 
 ### **Performance Analysis**

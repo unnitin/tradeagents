@@ -20,6 +20,7 @@ class PoliticianFollowingStrategy(Strategy):
             min_trade_amount: Minimum trade amount to consider
             signal_delay_days: Days to wait after trade filing before signal
         """
+        super().__init__()
         self.politician_names = politician_names or []
         self.days_back = days_back
         self.min_trade_amount = min_trade_amount
@@ -98,6 +99,7 @@ class PelosiTrackingStrategy(Strategy):
             days_back: Days to look back for Pelosi trades
             signal_delay_days: Days to wait after trade before signal
         """
+        super().__init__()
         self.days_back = days_back
         self.signal_delay_days = signal_delay_days
         self.data_fetcher = DataFetcher()
@@ -156,6 +158,7 @@ class CongressMomentumStrategy(Strategy):
             min_politicians: Minimum number of politicians needed for signal
             momentum_window: Days within which trades must occur for momentum
         """
+        super().__init__()
         self.days_back = days_back
         self.min_politicians = min_politicians
         self.momentum_window = momentum_window

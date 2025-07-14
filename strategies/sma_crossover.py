@@ -7,6 +7,7 @@ class SMACrossover(Strategy):
     Generates signals only when fast SMA crosses above/below slow SMA.
     """
     def __init__(self, fast: int = 20, slow: int = 50):
+        super().__init__()
         self.fast = fast
         self.slow = slow
 

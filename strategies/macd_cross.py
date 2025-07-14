@@ -7,6 +7,7 @@ class MACDCross(Strategy):
     Generates signals when MACD line crosses above/below signal line.
     """
     def __init__(self, macd_col: str = "macd", signal_col: str = "macd_signal"):
+        super().__init__()
         self.macd_col = macd_col
         self.signal_col = signal_col
 

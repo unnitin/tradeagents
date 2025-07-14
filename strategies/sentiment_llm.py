@@ -4,6 +4,7 @@ from utils import score_sentiment
 
 class SentimentLLMStrategy(Strategy):
     def __init__(self, sentiment_threshold: float = 0.3):
+        super().__init__()
         self.threshold = sentiment_threshold
 
     def generate_signals(self, news_df: pd.DataFrame) -> pd.Series:

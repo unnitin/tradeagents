@@ -20,7 +20,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backtest.engine import BacktestEngine, BacktestConfig, create_backtest_engine
-from backtest.filters import StockFilter, TimeFilter
+from filters import StockFilter, TimeFilter
 from backtest.results import save_results, compare_multiple_results
 from strategies import SMACrossover, RSIReversion, MACDCross
 from datetime import datetime
