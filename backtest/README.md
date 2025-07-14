@@ -102,7 +102,7 @@ Calculates comprehensive performance metrics:
 Provides configurable filtering for stocks and time periods:
 
 ```python
-from backtest import StockFilter, TimeFilter, CompositeFilter
+from filters import StockFilter, TimeFilter, CompositeFilter
 
 # Stock filtering
 stock_filter = StockFilter(
@@ -272,7 +272,8 @@ print(f"Max Drawdown: {results.metrics.max_drawdown:.2%}")
 
 ### Advanced Backtest with Filtering
 ```python
-from backtest import create_backtest_engine, StockFilter, TimeFilter
+from backtest import create_backtest_engine
+from filters import StockFilter, TimeFilter
 from config import load_backtest_config
 from strategies import SMACrossover
 

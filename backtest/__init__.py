@@ -11,7 +11,7 @@ This module provides comprehensive backtesting functionality including:
 Usage:
     from backtest import BacktestEngine, create_backtest_engine
     from backtest.metrics import PerformanceMetrics
-    from backtest.filters import StockFilter
+    from filters import StockFilter
     
     # Simple backtest
     engine = create_backtest_engine()
@@ -29,7 +29,7 @@ Usage:
 
 from .engine import BacktestEngine, create_backtest_engine
 from .metrics import PerformanceMetrics, calculate_performance_metrics
-from .filters import StockFilter, TimeFilter
+from filters import StockFilter, TimeFilter
 from .results import BacktestResults, save_results, load_results
 from .portfolio import Portfolio
 
