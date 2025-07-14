@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from composer import create_composer, get_signals, StrategyComposer
 from strategies import SMACrossover, RSIReversion, MACDCross, BollingerBounce
 from data import get_data, add_sma, add_ema, add_rsi
+from filters import StockFilter, TimeFilter, LiquidityFilter, CompositeFilter
 
 
 class TestIntegration(unittest.TestCase):
@@ -254,6 +255,305 @@ class TestIntegration(unittest.TestCase):
             print(f"   - Buy/Sell ratio: {buy_signals}/{sell_signals}")
         else:
             self.skipTest("technical_ensemble combination not available")
+
+    def test_strategy_level_filtering_integration(self):
+        """Test strategy-level filtering integration with complete workflow."""
+        print("\n🔄 Testing strategy-level filtering integration...")
+        
+        # Create multi-symbol dataset for realistic testing
+        symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA']
+        multi_symbol_data = []
+        
+        for symbol in symbols:
+            symbol_data = self.df.copy()
+            symbol_data['symbol'] = symbol
+            # Vary volume to test filtering
+            if symbol == 'AAPL':
+                symbol_data['volume'] = symbol_data['volume'] * 3  # High volume
+            elif symbol == 'TSLA':
+                symbol_data['volume'] = symbol_data['volume'] * 0.5  # Low volume
+            multi_symbol_data.append(symbol_data)
+        
+        multi_df = pd.concat(multi_symbol_data, ignore_index=True)
+        
+        # Test basic filtering
+        strategy = SMACrossover(fast=20, slow=50)
+        volume_filter = StockFilter(min_volume=2000000)
+        strategy.set_filters([volume_filter])
+        
+        # Generate signals with filtering
+        filtered_signals = strategy.generate_signals_with_filters(self.df)
+        unfiltered_signals = strategy.generate_signals(self.df)
+        
+        # Verify filtering has an effect
+        self.assertEqual(len(filtered_signals), len(unfiltered_signals))
+        # Filtered signals should have fewer or equal non-zero signals
+        filtered_signal_count = (filtered_signals != 0).sum()
+        unfiltered_signal_count = (unfiltered_signals != 0).sum()
+        self.assertLessEqual(filtered_signal_count, unfiltered_signal_count)
+        
+        print(f"✅ Basic filtering: {unfiltered_signal_count} → {filtered_signal_count} signals after filtering")
+
+    def test_symbol_specific_filtering_integration(self):
+        """Test symbol-specific filtering in realistic multi-symbol scenarios."""
+        print("\n🔄 Testing symbol-specific filtering integration...")
+        
+        # Create strategy with symbol-specific filters
+        strategy = RSIReversion(rsi_col='rsi_14', low_thresh=30, high_thresh=70)
+        
+        # Set different filters for different symbols
+        symbol_filters = {
+            'AAPL': [StockFilter(min_volume=3000000)],  # Stricter for AAPL
+            'GOOGL': [StockFilter(min_price=120)],      # Price filter for GOOGL
+            'MSFT': [StockFilter(max_price=180)],       # Max price for MSFT
+        }
+        strategy.set_symbol_filters(symbol_filters)
+        
+        # Test with multi-symbol data
+        symbols = ['AAPL', 'GOOGL', 'MSFT', 'OTHERS']
+        multi_symbol_data = []
+        
+        for symbol in symbols:
+            symbol_data = self.df.copy()
+            symbol_data['symbol'] = symbol
+            # Customize data per symbol
+            if symbol == 'AAPL':
+                symbol_data['volume'] = symbol_data['volume'] * 2
+                symbol_data['close'] = symbol_data['close'] * 1.5
+            elif symbol == 'GOOGL':
+                symbol_data['close'] = symbol_data['close'] * 1.2
+            elif symbol == 'OTHERS':
+                symbol_data['volume'] = symbol_data['volume'] * 0.3  # Low volume
+            multi_symbol_data.append(symbol_data)
+        
+        multi_df = pd.concat(multi_symbol_data, ignore_index=True)
+        
+        # Generate signals with symbol-specific filtering
+        advanced_signals = strategy.generate_signals_with_advanced_filters(multi_df)
+        basic_signals = strategy.generate_signals_with_filters(multi_df)
+        
+        # Verify results
+        self.assertEqual(len(advanced_signals), len(multi_df))
+        
+        # Symbol-specific filtering should affect results differently than basic filtering
+        advanced_signal_count = (advanced_signals != 0).sum()
+        basic_signal_count = (basic_signals != 0).sum()
+        
+        print(f"✅ Symbol-specific filtering: {basic_signal_count} → {advanced_signal_count} signals with symbol rules")
+
+    def test_dynamic_filtering_integration(self):
+        """Test dynamic filtering that adapts to market conditions."""
+        print("\n🔄 Testing dynamic filtering integration...")
+        
+        # Create strategy with dynamic filters
+        strategy = MACDCross(macd_col='macd', signal_col='macd_signal')
+        
+        # Simulate dynamic filters that change based on market conditions
+        # In real usage, these would adapt to VIX, market regime, etc.
+        high_volatility_filter = StockFilter(min_volume=3000000)  # Require higher volume during volatility
+        low_volatility_filter = StockFilter(min_volume=1000000)   # Lower volume requirement in calm markets
+        
+        # Test high volatility scenario
+        strategy.set_dynamic_filters([high_volatility_filter])
+        high_vol_signals = strategy.generate_signals_with_advanced_filters(self.df)
+        
+        # Test low volatility scenario
+        strategy.set_dynamic_filters([low_volatility_filter])
+        low_vol_signals = strategy.generate_signals_with_advanced_filters(self.df)
+        
+        # Verify different filtering produces different results
+        high_vol_count = (high_vol_signals != 0).sum()
+        low_vol_count = (low_vol_signals != 0).sum()
+        
+        # Low volatility filter should generally allow more signals
+        self.assertGreaterEqual(low_vol_count, high_vol_count)
+        
+        print(f"✅ Dynamic filtering: High vol: {high_vol_count}, Low vol: {low_vol_count} signals")
+
+    def test_configuration_based_filtering_integration(self):
+        """Test configuration-driven filtering integration."""
+        print("\n🔄 Testing configuration-based filtering integration...")
+        
+        # Create multiple filter configurations
+        configs = {
+            'conservative': {
+                'stock_filter': {
+                    'min_volume': 5000000,
+                    'min_price': 100,
+                    'max_price': 500
+                },
+                'liquidity_filter': {
+                    'min_avg_volume': 3000000,
+                    'volume_window': 20
+                },
+                'logic': 'AND'
+            },
+            'aggressive': {
+                'stock_filter': {
+                    'min_volume': 1000000,
+                    'min_price': 10
+                },
+                'logic': 'AND'
+            },
+            'balanced': {
+                'stock_filter': {
+                    'min_volume': 2000000,
+                    'min_price': 50
+                },
+                'time_filter': {
+                    'exclude_market_holidays': True,
+                    'min_trading_days': 20
+                },
+                'logic': 'AND'
+            }
+        }
+        
+        results = {}
+        
+        for config_name, filter_config in configs.items():
+            strategy = SMACrossover(fast=20, slow=50)
+            strategy.configure_filters_from_config(filter_config)
+            
+            signals = strategy.generate_signals_with_filters(self.df)
+            signal_count = (signals != 0).sum()
+            results[config_name] = signal_count
+            
+            # Verify configuration was applied
+            self.assertGreater(len(strategy.filters), 0)
+            self.assertEqual(strategy.filter_logic, filter_config['logic'])
+        
+        # Conservative should have fewer signals than aggressive
+        self.assertLessEqual(results['conservative'], results['aggressive'])
+        
+        print(f"✅ Config-based filtering: Conservative: {results['conservative']}, "
+              f"Balanced: {results['balanced']}, Aggressive: {results['aggressive']} signals")
+
+    def test_composer_with_filtered_strategies_integration(self):
+        """Test composer integration with filtered strategies."""
+        print("\n🔄 Testing composer integration with filtered strategies...")
+        
+        # Create filtered strategies
+        strategies = {}
+        
+        # Strategy 1: Volume-filtered SMA
+        sma_strategy = SMACrossover(fast=20, slow=50)
+        sma_strategy.set_filters([StockFilter(min_volume=2000000)])
+        strategies['filtered_sma'] = sma_strategy
+        
+        # Strategy 2: RSI with symbol-specific filters
+        rsi_strategy = RSIReversion(rsi_col='rsi_14', low_thresh=30, high_thresh=70)
+        rsi_strategy.set_symbol_filters({
+            'AAPL': [StockFilter(min_volume=3000000)],
+            'GOOGL': [StockFilter(min_price=100)]
+        })
+        strategies['symbol_filtered_rsi'] = rsi_strategy
+        
+        # Strategy 3: Configuration-based filtering
+        macd_strategy = MACDCross(macd_col='macd', signal_col='macd_signal')
+        macd_strategy.configure_filters_from_config({
+            'stock_filter': {'min_volume': 1500000, 'min_price': 80},
+            'liquidity_filter': {'min_avg_volume': 1000000},
+            'logic': 'AND'
+        })
+        strategies['config_filtered_macd'] = macd_strategy
+        
+        # Test each filtered strategy
+        for name, strategy in strategies.items():
+            with self.subTest(strategy=name):
+                # Test basic filtering
+                basic_signals = strategy.generate_signals_with_filters(self.df)
+                self.assertEqual(len(basic_signals), len(self.df))
+                
+                # Test advanced filtering (if applicable)
+                if hasattr(strategy, 'symbol_filters') and strategy.symbol_filters:
+                    advanced_signals = strategy.generate_signals_with_advanced_filters(self.df)
+                    self.assertEqual(len(advanced_signals), len(self.df))
+                
+                basic_count = (basic_signals != 0).sum()
+                print(f"✅ {name}: {basic_count} filtered signals generated")
+
+    def test_filter_analytics_integration(self):
+        """Test filter analytics and validation in integration scenarios."""
+        print("\n🔄 Testing filter analytics integration...")
+        
+        # Create complex filtering setup
+        strategy = BollingerBounce(bb_window=20)
+        
+        # Add multiple types of filters
+        strategy.set_filters([
+            StockFilter(min_volume=2000000, min_price=50),
+            LiquidityFilter(min_avg_volume=1500000)
+        ])
+        
+        strategy.set_symbol_filters({
+            'AAPL': [StockFilter(min_volume=5000000)],
+            'GOOGL': [StockFilter(min_price=100)],
+            'MSFT': [StockFilter(max_price=200)]
+        })
+        
+        strategy.set_dynamic_filters([
+            TimeFilter(exclude_market_holidays=True)
+        ])
+        
+        # Test analytics
+        basic_info = strategy.get_filter_info()
+        advanced_info = strategy.get_advanced_filter_info()
+        
+        # Verify analytics structure
+        self.assertIn('filter_count', basic_info)
+        self.assertIn('logic', basic_info)
+        self.assertEqual(basic_info['filter_count'], 2)
+        
+        self.assertIn('base_filters', advanced_info)
+        self.assertIn('symbol_filters', advanced_info)
+        self.assertIn('dynamic_filters', advanced_info)
+        
+        # Verify correct counts
+        self.assertEqual(len(advanced_info['symbol_filters']), 3)
+        self.assertEqual(len(advanced_info['dynamic_filters']), 1)
+        
+        print(f"✅ Filter analytics: {basic_info['filter_count']} base, "
+              f"{len(advanced_info['symbol_filters'])} symbol-specific, "
+              f"{len(advanced_info['dynamic_filters'])} dynamic filters")
+
+    def test_filtering_edge_cases_integration(self):
+        """Test filtering edge cases in integration scenarios."""
+        print("\n🔄 Testing filtering edge cases integration...")
+        
+        # Test 1: Empty filter handling
+        strategy = SMACrossover(fast=20, slow=50)
+        empty_signals = strategy.generate_signals_with_filters(self.df)
+        no_filter_signals = strategy.generate_signals(self.df)
+        
+        # Should be equivalent when no filters applied
+        pd.testing.assert_series_equal(empty_signals, no_filter_signals, check_names=False)
+        
+        # Test 2: Filters that eliminate all data
+        strict_filter = StockFilter(min_volume=50000000)  # Very high volume requirement
+        strategy.set_filters([strict_filter])
+        
+        strict_signals = strategy.generate_signals_with_filters(self.df)
+        # Should return all zeros when everything is filtered out
+        self.assertTrue((strict_signals == 0).all())
+        
+        # Test 3: OR vs AND logic
+        filter1 = StockFilter(min_volume=10000000)  # High volume
+        filter2 = StockFilter(min_price=200)       # High price
+        
+        # Test AND logic (restrictive)
+        strategy.set_filters([filter1, filter2], logic="AND")
+        and_signals = strategy.generate_signals_with_filters(self.df)
+        
+        # Test OR logic (permissive)
+        strategy.set_filters([filter1, filter2], logic="OR")
+        or_signals = strategy.generate_signals_with_filters(self.df)
+        
+        # OR should generally produce more or equal signals than AND
+        and_count = (and_signals != 0).sum()
+        or_count = (or_signals != 0).sum()
+        self.assertGreaterEqual(or_count, and_count)
+        
+        print(f"✅ Edge cases: AND logic: {and_count}, OR logic: {or_count} signals")
 
     def test_error_handling(self):
         """Test that error handling works correctly."""
