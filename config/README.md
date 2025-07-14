@@ -24,7 +24,7 @@ from config import load_filter_config, FilterConfigManager
 config = load_filter_config("large_cap_conservative")
 
 # Create a filter with the configuration
-from backtest.filters import StockFilter
+from filters import StockFilter
 filter = StockFilter(
     min_volume=config.min_volume,
     min_price=config.min_price,
@@ -195,7 +195,7 @@ custom_config = FilterConfig(
 )
 
 # Use with filters
-from backtest.filters import StockFilter
+from filters import StockFilter
 filter = StockFilter(
     min_volume=custom_config.min_volume,
     min_price=custom_config.min_price,
@@ -338,7 +338,7 @@ The filter configuration system integrates seamlessly with the backtesting frame
 
 ```python
 from config import load_filter_config
-from backtest.filters import StockFilter, CompositeFilter
+from filters import StockFilter, CompositeFilter
 from backtest.engine import BacktestEngine
 
 # Load configuration
@@ -371,7 +371,7 @@ config/
 
 ## See Also
 
-- **`examples/filter_config_demo.py`** - Comprehensive usage examples
+- **`examples/filter_config_example.py`** - Comprehensive usage examples
 - **`examples/backtest_example.py`** - Integration with backtesting
-- **`backtest/filters.py`** - Filter implementations
+- **`filters/core.py`** - Filter implementations
 - **`strategies/`** - Strategy implementations using configurations 

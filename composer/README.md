@@ -255,7 +255,7 @@ python -m pytest tests/unit_test/test_composer.py -v
 python tests/test_backtest_runner.py
 
 # Run composer examples
-python examples/strategy_composer_demo.py
+python examples/strategy_composer_example.py
 python examples/composer_backtest_example.py
 ```
 
@@ -264,7 +264,7 @@ python examples/composer_backtest_example.py
 # Complete workflow example
 from composer import create_composer
 from backtest import create_backtest_engine
-from backtest import StockFilter, TimeFilter
+from filters import StockFilter, TimeFilter
 
 # 1. Create composer from config
 composer = create_composer("config/strategies.yaml")
