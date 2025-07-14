@@ -23,6 +23,10 @@ from strategies import (
     PoliticianFollowingStrategy, PelosiTrackingStrategy, CongressMomentumStrategy
 )
 
+# Import filter classes
+from filters import StockFilter, TimeFilter, LiquidityFilter, CompositeFilter
+from config.filter_config import FilterConfigManager
+
 
 class StrategyComposer:
     """
@@ -42,6 +46,7 @@ class StrategyComposer:
         self.strategy_classes = self._get_strategy_classes()
         self.initialized_strategies = {}
         self.filters = {}
+        self.filter_config_manager = FilterConfigManager()
         
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file."""
@@ -103,6 +108,77 @@ class StrategyComposer:
             raise ValueError(f"Filter '{filter_name}' not found or not enabled")
         return self.filters[filter_name]
     
+    def create_filter_from_config(self, filter_config: Dict[str, Any]) -> List:
+        """
+        Create filter instances from configuration.
+        
+        Args:
+            filter_config: Filter configuration dictionary
+            
+        Returns:
+            List of filter instances
+        """
+        filters = []
+        
+        if 'stock_filter' in filter_config:
+            stock_config = filter_config['stock_filter']
+            stock_filter = StockFilter(
+                min_volume=stock_config.get('min_volume', 1000000.0),
+                min_price=stock_config.get('min_price', 5.0),
+                max_price=stock_config.get('max_price'),
+                min_market_cap=stock_config.get('min_market_cap'),
+                max_volatility=stock_config.get('max_volatility'),
+                exclude_symbols=stock_config.get('exclude_symbols', []),
+                include_symbols=stock_config.get('include_symbols', [])
+            )
+            filters.append(stock_filter)
+            
+        if 'time_filter' in filter_config:
+            time_config = filter_config['time_filter']
+            time_filter = TimeFilter(
+                exclude_dates=time_config.get('exclude_dates', []),
+                include_dates=time_config.get('include_dates', []),
+                start_time=time_config.get('start_time'),
+                end_time=time_config.get('end_time'),
+                exclude_earnings_periods=time_config.get('exclude_earnings_periods', False),
+                exclude_market_holidays=time_config.get('exclude_market_holidays', True),
+                min_trading_days=time_config.get('min_trading_days', 30)
+            )
+            filters.append(time_filter)
+            
+        if 'liquidity_filter' in filter_config:
+            liquidity_config = filter_config['liquidity_filter']
+            liquidity_filter = LiquidityFilter(
+                min_avg_volume=liquidity_config.get('min_avg_volume', 1000000.0),
+                volume_window=liquidity_config.get('volume_window', 20),
+                max_bid_ask_spread=liquidity_config.get('max_bid_ask_spread'),
+                min_dollar_volume=liquidity_config.get('min_dollar_volume')
+            )
+            filters.append(liquidity_filter)
+            
+        return filters
+    
+    def apply_filters_to_data(self, df: pd.DataFrame, filters: List, logic: str = "AND") -> pd.DataFrame:
+        """
+        Apply filters to DataFrame.
+        
+        Args:
+            df: Input DataFrame
+            filters: List of filter instances
+            logic: How to combine filters ("AND" or "OR")
+            
+        Returns:
+            Filtered DataFrame
+        """
+        if not filters:
+            return df
+            
+        if len(filters) == 1:
+            return filters[0].apply_filter(df)
+        
+        composite_filter = CompositeFilter(filters, logic)
+        return composite_filter.apply_filter(df)
+    
     def combine_strategies(self, combination_name: str, df: pd.DataFrame) -> pd.Series:
         """
         Combine multiple strategies according to the specified combination method.
@@ -123,11 +199,36 @@ class StrategyComposer:
         weights = combination_config.get('weights', {})
         filter_names = combination_config.get('filters', [])
         
+        # Handle new filter configuration format
+        filter_config = combination_config.get('filter_config', {})
+        
+        # Apply data-level filters first if specified
+        working_df = df
+        if filter_config:
+            data_filters = self.create_filter_from_config(filter_config)
+            filter_logic = filter_config.get('logic', 'AND')
+            working_df = self.apply_filters_to_data(df, data_filters, filter_logic)
+        
         # Generate signals from individual strategies
         signals = []
         for strategy_name in strategy_names:
             strategy = self.get_strategy(strategy_name)
-            signal = strategy.generate_signals(df)
+            
+            # Check if strategy has individual filter configuration
+            strategy_config = self.config.get('strategies', {}).get(strategy_name, {})
+            strategy_filter_config = strategy_config.get('filter_config', {})
+            
+            if strategy_filter_config:
+                # Configure filters for this strategy
+                strategy_filters = self.create_filter_from_config(strategy_filter_config)
+                strategy_filter_logic = strategy_filter_config.get('logic', 'AND')
+                strategy.set_filters(strategy_filters, strategy_filter_logic)
+                
+                # Use filtered signal generation
+                signal = strategy.generate_signals_with_filters(working_df)
+            else:
+                signal = strategy.generate_signals(working_df)
+                
             signals.append(signal)
         
         # Combine signals based on method
@@ -144,10 +245,10 @@ class StrategyComposer:
         else:
             raise ValueError(f"Unknown combination method: {method}")
         
-        # Apply filters
+        # Apply legacy filter-based strategies (for backward compatibility)
         for filter_name in filter_names:
             filter_strategy = self.get_filter(filter_name)
-            filter_signal = filter_strategy.generate_signals(df)
+            filter_signal = filter_strategy.generate_signals(working_df)
             combined_signal = self._apply_filter(combined_signal, filter_signal)
         
         return combined_signal

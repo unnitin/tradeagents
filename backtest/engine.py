@@ -17,7 +17,7 @@ from strategies.base import Strategy
 from data import DataFetcher
 from .portfolio import Portfolio
 from .metrics import PerformanceMetrics, calculate_performance_metrics
-from .filters import StockFilter, TimeFilter
+from filters import StockFilter, TimeFilter
 from .results import BacktestResults
 from config import BacktestConfig
 
