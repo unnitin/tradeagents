@@ -16,7 +16,7 @@ The `data/` module provides utilities for fetching, preprocessing, and engineeri
 ## File Descriptions
 
 ### [`fetch_data.py`](./fetch_data.py)
-Fetches historical OHLCV data from Yahoo Finance using yfinance. Cleans and standardizes the data, ensuring single-level column names and proper datetime formatting.
+Fetches historical OHLCV data from Yahoo Finance using Direct Yahoo Finance API. Cleans and standardizes the data, ensuring single-level column names and proper datetime formatting.
 
 ### [`preprocess.py`](./preprocess.py)
 Provides functions to resample OHLCV data to different time intervals using standardized aggregation rules (see `constants.py`).
