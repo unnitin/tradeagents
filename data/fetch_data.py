@@ -3,10 +3,8 @@
 import pandas as pd  # type: ignore
 import requests  # type: ignore
 import re
-import ssl
-import certifi
 import os
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, Any
 from datetime import datetime, timedelta
 
 
@@ -22,40 +20,50 @@ class DataFetcher:
         self.quiver_api_key = quiver_api_key
         self.capitol_trades_api_key = capitol_trades_api_key
         
-        # API endpoints
-        self.endpoints = {
-            'quiver_house': 'https://api.quiverquant.com/beta/live/congresstrading/house',
-            'quiver_senate': 'https://api.quiverquant.com/beta/live/congresstrading/senate'
-        }
+        # API Configuration - consolidated external service endpoints
+        self.config = self._load_api_config()
         
-        # Twitter accounts that track politician trades
-        self.trading_accounts = {
-            'PelosiTracker': '@PelosiTracker',
-            'CongressTrading': '@CongressTrading'
-        }
+        # Legacy compatibility - maintain direct access
+        self.endpoints = self.config['api_endpoints']
+        self.trading_accounts = self.config['social_accounts']
         
         self.ticker_pattern = r'\$([A-Z]{1,5})'
         
-        # Configure SSL settings to fix certificate issues
-        self._configure_ssl()
+        # Note: SSL configuration removed - Direct Yahoo Finance API handles SSL internally
     
-    def _configure_ssl(self):
-        """Configure SSL settings to resolve certificate verification issues."""
-        try:
-            # Set SSL certificate bundle path
-            cert_path = certifi.where()
-            os.environ['REQUESTS_CA_BUNDLE'] = cert_path
-            os.environ['SSL_CERT_FILE'] = cert_path
-            os.environ['CURL_CA_BUNDLE'] = cert_path
-            
-            # Create SSL context
-            self.ssl_context = ssl.create_default_context(cafile=cert_path)
-            
-            print(f"🔒 SSL configured with certificate bundle: {cert_path}")
-            
-        except Exception as e:
-            print(f"⚠️ SSL configuration warning: {e}")
-            self.ssl_context = None
+    def _load_api_config(self) -> Dict[str, Any]:
+        """
+        Load consolidated API configuration.
+        
+        Centralizes all external service endpoints and social media accounts
+        for better organization and easier maintenance.
+        
+        Returns:
+            Dict containing API endpoints, social accounts, and other config
+        """
+        return {
+            'api_endpoints': {
+                'quiver_house': 'https://api.quiverquant.com/beta/live/congresstrading/house',
+                'quiver_senate': 'https://api.quiverquant.com/beta/live/congresstrading/senate',
+                'yahoo_finance_chart': 'https://query1.finance.yahoo.com/v8/finance/chart'
+            },
+            'social_accounts': {
+                'PelosiTracker': '@PelosiTracker',
+                'CongressTrading': '@CongressTrading',
+                'CapitolTrades': '@CapitolTrades_',
+                'QuiverQuant': '@QuiverQuant'
+            },
+            'data_sources': {
+                'stock_data': 'yahoo_finance_direct',
+                'politician_trades': 'quiver_api',
+                'social_sentiment': 'twitter_tracking'
+            },
+            'default_intervals': {
+                'stock_data': '1d',
+                'intraday': '1h',
+                'minute': '1m'
+            }
+        }
     
     def get_stock_data(self, ticker: str, interval: str = "1d", 
                       start: Optional[str] = None, end: Optional[str] = None) -> pd.DataFrame:
@@ -114,8 +122,9 @@ class DataFetcher:
             }
             yahoo_interval = interval_map.get(interval, '1d')
             
-            # Yahoo Finance API URL
-            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+            # Yahoo Finance API URL from configuration
+            base_url = self.config['api_endpoints']['yahoo_finance_chart']
+            url = f"{base_url}/{ticker}"
             params = {
                 'period1': start_ts,
                 'period2': end_ts,
