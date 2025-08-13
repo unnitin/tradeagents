@@ -131,19 +131,14 @@ def step_1_fetch_data():
         print("\n❌ Failed to fetch or generate any data. Using all mock data...")
         stock_data = create_mock_data(symbols, start_date, end_date)
     
-    # Combine all data into a single DataFrame
-    combined_data = pd.concat(stock_data.values(), keys=stock_data.keys())
-    combined_data.index.names = ['Symbol', 'Date']
-    combined_data = combined_data.reset_index()
+    # Print summary of fetched data
+    total_records = sum(len(data) for data in stock_data.values())
+    print(f"\n📊 Total records fetched: {total_records}")
+    if stock_data:
+        sample_columns = list(next(iter(stock_data.values())).columns)
+        print(f"📈 Data columns: {sample_columns}")
     
-    # Remove duplicate Symbol column if it exists
-    if 'Symbol' in combined_data.columns and combined_data.columns.tolist().count('Symbol') > 1:
-        combined_data = combined_data.loc[:, ~combined_data.columns.duplicated()]
-    
-    print(f"\n📊 Total records fetched: {len(combined_data)}")
-    print(f"📈 Data columns: {list(combined_data.columns)}")
-    
-    return combined_data, stock_data
+    return stock_data
 
 
 def create_mock_data(symbols: List[str], start_date: str, end_date: str) -> Dict[str, pd.DataFrame]:
@@ -468,7 +463,7 @@ def main():
     
     try:
         # Step 1: Fetch data
-        combined_data, stock_data = step_1_fetch_data()
+        stock_data = step_1_fetch_data()
         
         # Step 1.5: Add technical indicators to all data (both real and mock)
         print_section(
