@@ -17,6 +17,7 @@ class DataFetcher:
     """
     
     def __init__(self, quiver_api_key: Optional[str] = None, capitol_trades_api_key: Optional[str] = None):
+        # TODO: Create an API key loader similar to config loader
         self.quiver_api_key = quiver_api_key
         self.capitol_trades_api_key = capitol_trades_api_key
         
@@ -99,6 +100,7 @@ class DataFetcher:
     def _fetch_yahoo_direct(self, ticker: str, interval: str, start: Optional[str], end: Optional[str]) -> pd.DataFrame:
         """Direct Yahoo Finance API access for reliable stock data retrieval."""
         try:
+            # TODO: Move the imports to the top of the file
             import time
             from datetime import datetime
             
@@ -114,6 +116,7 @@ class DataFetcher:
                 end_ts = int(datetime.now().timestamp())
             
             # Map intervals
+            # TODO: Move this to the config or constants file
             interval_map = {
                 '1d': '1d',
                 '1h': '1h',
@@ -137,6 +140,7 @@ class DataFetcher:
             session.verify = False
             
             # Disable SSL warnings
+            # TODO: Move this import to the top of the file
             import urllib3
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             
