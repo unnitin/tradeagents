@@ -4,8 +4,12 @@ import pandas as pd  # type: ignore
 import requests  # type: ignore
 import re
 import os
+import time
+import urllib3
 from typing import Optional, List, Dict, Union, Any
 from datetime import datetime, timedelta
+
+from .constants import YAHOO_FINANCE_INTERVALS
 
 
 class DataFetcher:
@@ -17,9 +21,10 @@ class DataFetcher:
     """
     
     def __init__(self, quiver_api_key: Optional[str] = None, capitol_trades_api_key: Optional[str] = None):
-        # TODO: Create an API key loader similar to config loader
-        self.quiver_api_key = quiver_api_key
-        self.capitol_trades_api_key = capitol_trades_api_key
+        # Load API keys using the centralized loader
+        api_keys = self._load_api_keys()
+        self.quiver_api_key = quiver_api_key or api_keys.get('quiver_api_key')
+        self.capitol_trades_api_key = capitol_trades_api_key or api_keys.get('capitol_trades_api_key')
         
         # API Configuration - consolidated external service endpoints
         self.config = self._load_api_config()
@@ -66,6 +71,23 @@ class DataFetcher:
             }
         }
     
+    def _load_api_keys(self) -> Dict[str, Optional[str]]:
+        """
+        Load API keys from environment variables.
+        
+        Centralizes API key management with fallback to environment variables.
+        This provides a consistent approach similar to the config loader.
+        
+        Returns:
+            Dict containing API keys loaded from environment
+        """
+        return {
+            'quiver_api_key': os.getenv('QUIVER_API_KEY'),
+            'capitol_trades_api_key': os.getenv('CAPITOL_TRADES_API_KEY'),
+            'alpha_vantage_api_key': os.getenv('ALPHA_VANTAGE_API_KEY'),
+            'finnhub_api_key': os.getenv('FINNHUB_API_KEY')
+        }
+    
     def get_stock_data(self, ticker: str, interval: str = "1d", 
                       start: Optional[str] = None, end: Optional[str] = None) -> pd.DataFrame:
         """
@@ -100,10 +122,6 @@ class DataFetcher:
     def _fetch_yahoo_direct(self, ticker: str, interval: str, start: Optional[str], end: Optional[str]) -> pd.DataFrame:
         """Direct Yahoo Finance API access for reliable stock data retrieval."""
         try:
-            # TODO: Move the imports to the top of the file
-            import time
-            from datetime import datetime
-            
             # Convert dates to timestamps
             if start:
                 start_ts = int(datetime.strptime(start, '%Y-%m-%d').timestamp())
@@ -115,15 +133,8 @@ class DataFetcher:
             else:
                 end_ts = int(datetime.now().timestamp())
             
-            # Map intervals
-            # TODO: Move this to the config or constants file
-            interval_map = {
-                '1d': '1d',
-                '1h': '1h',
-                '5m': '5m',
-                '1m': '1m'
-            }
-            yahoo_interval = interval_map.get(interval, '1d')
+            # Map intervals using constants
+            yahoo_interval = YAHOO_FINANCE_INTERVALS.get(interval, '1d')
             
             # Yahoo Finance API URL from configuration
             base_url = self.config['api_endpoints']['yahoo_finance_chart']
@@ -140,8 +151,6 @@ class DataFetcher:
             session.verify = False
             
             # Disable SSL warnings
-            # TODO: Move this import to the top of the file
-            import urllib3
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             
             headers = {
