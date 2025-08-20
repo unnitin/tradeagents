@@ -4,10 +4,11 @@ Complete Trading Workflow Example
 
 This example demonstrates the complete end-to-end trading workflow:
 1. 📊 Data Fetching - Get historical stock data and market information
-2. 📈 Strategy Creation - Define and configure trading strategies
-3. 🔍 Filter Setup - Apply various filtering techniques
-4. 🚀 Backtesting - Run comprehensive performance analysis
-5. 📋 Results Analysis - Interpret and visualize results
+2. 🔧 Technical Indicators - Add consistent indicators to all data
+3. 📈 Strategy Creation - Define and configure trading strategies
+4. 🔍 Filter Setup - Apply various filtering techniques
+5. 🚀 Backtesting - Run comprehensive performance analysis
+6. 📋 Results Analysis - Interpret and visualize results
 
 This is a one-stop example showing how all components work together.
 """
@@ -27,6 +28,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 # Import all required modules
 from data.fetch_data import DataFetcher
+from data.features import add_sma, add_rsi, add_macd, add_bollinger_bands
 from strategies import SMACrossover, RSIReversion, MACDCross, BollingerBounce
 from filters import StockFilter, TimeFilter, LiquidityFilter, CompositeFilter
 from backtest.engine import BacktestEngine, BacktestConfig, create_backtest_engine
@@ -43,6 +45,33 @@ def print_section(title: str, description: str = ""):
         print(f"{description}\n")
 
 
+def add_technical_indicators(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add standard technical indicators to stock data.
+    
+    This function ensures both real fetched data and mock data 
+    have the same technical indicators for strategy consistency.
+    
+    Args:
+        data (pd.DataFrame): OHLCV data with lowercase column names
+    
+    Returns:
+        pd.DataFrame: Data with added technical indicators
+    """
+    # Add moving averages
+    data = add_sma(data, 20)
+    data = add_sma(data, 50)
+    
+    # Add momentum indicators
+    data = add_rsi(data, 14)
+    data = add_macd(data)
+    
+    # Add volatility indicators
+    data = add_bollinger_bands(data, 20)
+    
+    return data
+
+
 def step_1_fetch_data():
     """Step 1: Fetch historical stock data for multiple symbols."""
     print_section(
@@ -56,9 +85,11 @@ def step_1_fetch_data():
     # Define our stock universe
     symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'SPY']
     
-    # Date range for our analysis
-    start_date = '2023-01-01'
-    end_date = '2023-12-31'
+    # Date range for our analysis - one year back from today
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=365)
+    start_date = start_date.strftime('%Y-%m-%d')
+    end_date = end_date.strftime('%Y-%m-%d')
     
     print(f"📈 Fetching data for symbols: {symbols}")
     print(f"📅 Date range: {start_date} to {end_date}")
@@ -74,6 +105,9 @@ def step_1_fetch_data():
                 end=end_date
             )
             
+            # Ensure column names are lowercase for consistency
+            data.columns = data.columns.str.lower()
+            
             # Don't add symbol column here since it will be added by concat keys
             stock_data[symbol] = data
             
@@ -83,24 +117,28 @@ def step_1_fetch_data():
             print(f"   ❌ Error fetching {symbol}: {e}")
             continue
     
-    # Check if we have any data, if not use mock data
+    # Use mock data for symbols that failed to fetch
+    # If missing_symbols is empty (all data fetched successfully), the if condition is False
+    # and no mock data is generated
+    missing_symbols = [symbol for symbol in symbols if symbol not in stock_data]
+    if missing_symbols:
+        print(f"\n⚠️ Using mock data for symbols that failed to fetch: {missing_symbols}")
+        mock_data = create_mock_data(missing_symbols, start_date, end_date)
+        stock_data.update(mock_data)
+        
+    # If still no data at all, something is seriously wrong
     if not stock_data:
-        print("\n⚠️ No data fetched due to network issues. Using mock data for demonstration...")
+        print("\n❌ Failed to fetch or generate any data. Using all mock data...")
         stock_data = create_mock_data(symbols, start_date, end_date)
     
-    # Combine all data into a single DataFrame
-    combined_data = pd.concat(stock_data.values(), keys=stock_data.keys())
-    combined_data.index.names = ['Symbol', 'Date']
-    combined_data = combined_data.reset_index()
+    # Print summary of fetched data
+    total_records = sum(len(data) for data in stock_data.values())
+    print(f"\n📊 Total records fetched: {total_records}")
+    if stock_data:
+        sample_columns = list(next(iter(stock_data.values())).columns)
+        print(f"📈 Data columns: {sample_columns}")
     
-    # Remove duplicate Symbol column if it exists
-    if 'Symbol' in combined_data.columns and combined_data.columns.tolist().count('Symbol') > 1:
-        combined_data = combined_data.loc[:, ~combined_data.columns.duplicated()]
-    
-    print(f"\n📊 Total records fetched: {len(combined_data)}")
-    print(f"📈 Data columns: {list(combined_data.columns)}")
-    
-    return combined_data, stock_data
+    return stock_data
 
 
 def create_mock_data(symbols: List[str], start_date: str, end_date: str) -> Dict[str, pd.DataFrame]:
@@ -126,22 +164,17 @@ def create_mock_data(symbols: List[str], start_date: str, end_date: str) -> Dict
         lows = np.minimum(opens, closes) * np.random.uniform(0.95, 1.0, len(closes))
         volumes = np.random.uniform(1000000, 10000000, len(closes))
         
-        # Create DataFrame
+        # Create DataFrame with lowercase column names to match library expectations
         data = pd.DataFrame({
-            'Open': opens,
-            'High': highs,
-            'Low': lows,
-            'Close': closes,
-            'Volume': volumes,
-            'Adj Close': closes
+            'open': opens,
+            'high': highs,
+            'low': lows,
+            'close': closes,
+            'volume': volumes,
+            'adj_close': closes
         }, index=date_range)
         
-        # Add technical indicators
-        data['sma_20'] = data['Close'].rolling(20).mean()
-        data['sma_50'] = data['Close'].rolling(50).mean()
-        data['rsi_14'] = calculate_rsi(data['Close'], 14)
-        data['macd'], data['macd_signal'] = calculate_macd(data['Close'])
-        data['bb_upper_20'], data['bb_lower_20'] = calculate_bollinger_bands(data['Close'], 20)
+        # Technical indicators will be added in the main flow
         
         # Don't add symbol column here since it will be added by concat keys
         stock_data[symbol] = data
@@ -150,32 +183,6 @@ def create_mock_data(symbols: List[str], start_date: str, end_date: str) -> Dict
     return stock_data
 
 
-def calculate_rsi(prices: pd.Series, period: int = 14) -> pd.Series:
-    """Calculate RSI indicator."""
-    delta = prices.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-    rs = gain / loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
-
-
-def calculate_macd(prices: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9) -> tuple:
-    """Calculate MACD indicator."""
-    ema_fast = prices.ewm(span=fast).mean()
-    ema_slow = prices.ewm(span=slow).mean()
-    macd = ema_fast - ema_slow
-    macd_signal = macd.ewm(span=signal).mean()
-    return macd, macd_signal
-
-
-def calculate_bollinger_bands(prices: pd.Series, period: int = 20, std_dev: float = 2.0) -> tuple:
-    """Calculate Bollinger Bands."""
-    rolling_mean = prices.rolling(window=period).mean()
-    rolling_std = prices.rolling(window=period).std()
-    upper_band = rolling_mean + (rolling_std * std_dev)
-    lower_band = rolling_mean - (rolling_std * std_dev)
-    return upper_band, lower_band
 
 
 def step_2_create_strategies():
@@ -305,8 +312,11 @@ def step_4_run_backtest(strategy, stock_data: Dict):
         slippage_rate=0.001
     )
     
-    start_date = '2023-01-01'
-    end_date = '2023-12-31'
+    # Use the same dynamic date range as in data fetching
+    end_date_dt = datetime.now()
+    start_date_dt = end_date_dt - timedelta(days=365)
+    start_date = start_date_dt.strftime('%Y-%m-%d')
+    end_date = end_date_dt.strftime('%Y-%m-%d')
     
     print("🚀 Running backtest...")
     print(f"   📅 Period: {start_date} to {end_date}")
@@ -449,11 +459,23 @@ def main():
     print("🎯 COMPLETE TRADING WORKFLOW DEMONSTRATION")
     print("=" * 80)
     print("This example shows the complete end-to-end process:")
-    print("Data Fetching → Strategy Creation → Filter Setup → Backtesting → Analysis")
+    print("Data Fetching → Technical Indicators → Strategy Creation → Filter Setup → Backtesting → Analysis")
     
     try:
         # Step 1: Fetch data
-        combined_data, stock_data = step_1_fetch_data()
+        stock_data = step_1_fetch_data()
+        
+        # Step 1.5: Add technical indicators to all data (both real and mock)
+        print_section(
+            "STEP 1.5: TECHNICAL INDICATORS",
+            "Adding consistent technical indicators to all stock data"
+        )
+        
+        for symbol, data in stock_data.items():
+            print(f"   🔧 Adding indicators to {symbol}...")
+            stock_data[symbol] = add_technical_indicators(data)
+            
+        print("✅ Technical indicators added to all data!")
         
         # Step 2: Create strategies
         strategies = step_2_create_strategies()

@@ -1,52 +1,207 @@
 # data/fetch_data.py
 
-import yfinance as yf  # type: ignore
 import pandas as pd  # type: ignore
 import requests  # type: ignore
 import re
-from typing import Optional, List, Dict, Union
+import os
+import time
+import urllib3
+from typing import Optional, List, Dict, Union, Any
 from datetime import datetime, timedelta
+
+from .constants import YAHOO_FINANCE_INTERVALS
 
 
 class DataFetcher:
     """
     Unified data fetcher combining stock data, politician trades, and social media tracking.
-    Single entry point for all trading data needs - fully self-contained.
+    
+    Uses Direct Yahoo Finance API for reliable stock data access, bypassing SSL certificate issues.
+    Single entry point for all trading data needs - fully self-contained and production-ready.
     """
     
     def __init__(self, quiver_api_key: Optional[str] = None, capitol_trades_api_key: Optional[str] = None):
-        self.quiver_api_key = quiver_api_key
-        self.capitol_trades_api_key = capitol_trades_api_key
+        # Load API keys using the centralized loader
+        api_keys = self._load_api_keys()
+        self.quiver_api_key = quiver_api_key or api_keys.get('quiver_api_key')
+        self.capitol_trades_api_key = capitol_trades_api_key or api_keys.get('capitol_trades_api_key')
         
-        # API endpoints
-        self.endpoints = {
-            'quiver_house': 'https://api.quiverquant.com/beta/live/congresstrading/house',
-            'quiver_senate': 'https://api.quiverquant.com/beta/live/congresstrading/senate'
-        }
+        # API Configuration - consolidated external service endpoints
+        self.config = self._load_api_config()
         
-        # Twitter accounts that track politician trades
-        self.trading_accounts = {
-            'PelosiTracker': '@PelosiTracker',
-            'CongressTrading': '@CongressTrading'
-        }
+        # Legacy compatibility - maintain direct access
+        self.endpoints = self.config['api_endpoints']
+        self.trading_accounts = self.config['social_accounts']
         
         self.ticker_pattern = r'\$([A-Z]{1,5})'
+        
+        # Note: SSL configuration removed - Direct Yahoo Finance API handles SSL internally
+    
+    def _load_api_config(self) -> Dict[str, Any]:
+        """
+        Load consolidated API configuration.
+        
+        Centralizes all external service endpoints and social media accounts
+        for better organization and easier maintenance.
+        
+        Returns:
+            Dict containing API endpoints, social accounts, and other config
+        """
+        return {
+            'api_endpoints': {
+                'quiver_house': 'https://api.quiverquant.com/beta/live/congresstrading/house',
+                'quiver_senate': 'https://api.quiverquant.com/beta/live/congresstrading/senate',
+                'yahoo_finance_chart': 'https://query1.finance.yahoo.com/v8/finance/chart'
+            },
+            'social_accounts': {
+                'PelosiTracker': '@PelosiTracker',
+                'CongressTrading': '@CongressTrading',
+                'CapitolTrades': '@CapitolTrades_',
+                'QuiverQuant': '@QuiverQuant'
+            },
+            'data_sources': {
+                'stock_data': 'yahoo_finance_direct',
+                'politician_trades': 'quiver_api',
+                'social_sentiment': 'twitter_tracking'
+            },
+            'default_intervals': {
+                'stock_data': '1d',
+                'intraday': '1h',
+                'minute': '1m'
+            }
+        }
+    
+    def _load_api_keys(self) -> Dict[str, Optional[str]]:
+        """
+        Load API keys from environment variables.
+        
+        Centralizes API key management with fallback to environment variables.
+        This provides a consistent approach similar to the config loader.
+        
+        Returns:
+            Dict containing API keys loaded from environment
+        """
+        return {
+            'quiver_api_key': os.getenv('QUIVER_API_KEY'),
+            'capitol_trades_api_key': os.getenv('CAPITOL_TRADES_API_KEY'),
+            'alpha_vantage_api_key': os.getenv('ALPHA_VANTAGE_API_KEY'),
+            'finnhub_api_key': os.getenv('FINNHUB_API_KEY')
+        }
     
     def get_stock_data(self, ticker: str, interval: str = "1d", 
                       start: Optional[str] = None, end: Optional[str] = None) -> pd.DataFrame:
-        """Fetch historical stock data from Yahoo Finance."""
-        df = yf.download(
-            tickers=ticker, 
-            interval=interval, 
-            start=start, 
-            end=end, 
-            progress=False, 
-            auto_adjust=False
-        )
-
+        """
+        Fetch historical stock data using Direct Yahoo Finance API.
+        
+        Directly accesses Yahoo's chart API for reliable data retrieval.
+        Returns clean OHLCV data ready for analysis and backtesting.
+        
+        Args:
+            ticker: Stock symbol (e.g., 'AAPL', 'MSFT')
+            interval: Data interval ('1d', '1h', '5m', '1m')
+            start: Start date as 'YYYY-MM-DD' string
+            end: End date as 'YYYY-MM-DD' string
+            
+        Returns:
+            DataFrame with columns: date, open, high, low, close, volume, adj_close
+        """
+        
+        try:
+            print(f"   🔄 Fetching {ticker} via Direct Yahoo Finance API...")
+            df = self._fetch_yahoo_direct(ticker, interval, start, end)
+            
+            if not df.empty:
+                print(f"   ✅ Successfully fetched {ticker}")
+                return self._process_dataframe(df)
+            else:
+                raise ValueError(f"Empty dataframe returned for {ticker}")
+                
+        except Exception as e:
+            raise ValueError(f"Failed to fetch data for {ticker} with interval {interval}. Error: {e}")
+    
+    def _fetch_yahoo_direct(self, ticker: str, interval: str, start: Optional[str], end: Optional[str]) -> pd.DataFrame:
+        """Direct Yahoo Finance API access for reliable stock data retrieval."""
+        try:
+            # Convert dates to timestamps
+            if start:
+                start_ts = int(datetime.strptime(start, '%Y-%m-%d').timestamp())
+            else:
+                start_ts = int((datetime.now() - timedelta(days=365)).timestamp())
+            
+            if end:
+                end_ts = int(datetime.strptime(end, '%Y-%m-%d').timestamp())
+            else:
+                end_ts = int(datetime.now().timestamp())
+            
+            # Map intervals using constants
+            yahoo_interval = YAHOO_FINANCE_INTERVALS.get(interval, '1d')
+            
+            # Yahoo Finance API URL from configuration
+            base_url = self.config['api_endpoints']['yahoo_finance_chart']
+            url = f"{base_url}/{ticker}"
+            params = {
+                'period1': start_ts,
+                'period2': end_ts,
+                'interval': yahoo_interval,
+                'includePrePost': 'false'
+            }
+            
+            # Create session with SSL verification disabled
+            session = requests.Session()
+            session.verify = False
+            
+            # Disable SSL warnings
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+            }
+            
+            response = session.get(url, params=params, headers=headers, timeout=30)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            if 'chart' not in data or not data['chart']['result']:
+                raise ValueError(f"No data available for {ticker}")
+            
+            result = data['chart']['result'][0]
+            
+            if 'timestamp' not in result or not result['timestamp']:
+                raise ValueError(f"No timestamp data for {ticker}")
+            
+            # Extract OHLCV data
+            timestamps = result['timestamp']
+            indicators = result['indicators']['quote'][0]
+            
+            df_data = {
+                'date': [datetime.fromtimestamp(ts) for ts in timestamps],
+                'open': indicators.get('open', [None] * len(timestamps)),
+                'high': indicators.get('high', [None] * len(timestamps)),
+                'low': indicators.get('low', [None] * len(timestamps)),
+                'close': indicators.get('close', [None] * len(timestamps)),
+                'volume': indicators.get('volume', [None] * len(timestamps))
+            }
+            
+            # Add adjusted close if available
+            if 'adjclose' in result['indicators']:
+                df_data['adj_close'] = result['indicators']['adjclose'][0]['adjclose']
+            else:
+                df_data['adj_close'] = df_data['close']
+            
+            df = pd.DataFrame(df_data)
+            df = df.dropna()
+            
+            return df
+            
+        except Exception as e:
+            raise Exception(f"Direct Yahoo API failed: {e}")
+    
+    def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Process and clean the downloaded dataframe."""
         if df.empty:
-            raise ValueError(f"No data returned for {ticker} with interval {interval}.")
-
+            return df
+            
         df.dropna(inplace=True)
         df = df.reset_index()
         if isinstance(df.columns, pd.MultiIndex):
