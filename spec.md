@@ -242,7 +242,7 @@ stocks is fine). If we scale to thousands of stocks or very long histories, we m
 53 54
 preferred. We will use vectorized pandas operations for indicator calculations for speed .
 8
-•
+•   
 •
 Alternative Strategies & Research: We remain open to integrating reinforcement learning or
 other AI-driven strategy discovery in the future (e.g., training an agent via deep RL to trade).
