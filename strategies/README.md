@@ -2,6 +2,18 @@
 
 This directory contains algorithmic trading strategies implemented in Python. Each strategy generates buy/sell/hold signals based on technical indicators and can be tested using the comprehensive backtest module.
 
+| Strategy | Category | Highlights |
+| --- | --- | --- |
+| `SMACrossover` | Technical trend | Fast/slow moving average crossovers. |
+| `RSIReversion` | Technical mean reversion | Oversold/overbought thresholds. |
+| `MACDCross` | Momentum | MACD vs signal line cross logic. |
+| `BollingerBounce` | Volatility | Trades bounces at Bollinger Bands. |
+| `ATRVolatilityFilter` | Filter | Volatility gate using ATR z-scores. |
+| `SentimentLLMStrategy` | NLP / News agent | Uses FinBERT to convert headlines into signals. |
+| `PoliticianFollowingStrategy` / `PelosiTrackingStrategy` / `CongressMomentumStrategy` | Alternative data | Mirror congressional trades or crowd momentum. |
+
+Each class inherits from `Strategy` (`base.py`), meaning they all support filter attachments, symbol-specific filtering, and context-driven configuration. This aligns with the “Strategy Agents” portion of `spec.md`, enabling modular plug-and-play within the composer and agent layers.
+
 ## 🚀 **NEW: Backtest Integration**
 
 All strategies are now fully integrated with the **comprehensive backtest module** for performance evaluation:

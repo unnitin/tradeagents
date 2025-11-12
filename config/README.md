@@ -2,6 +2,16 @@
 
 This directory contains configuration files and utilities for the trading system. The configuration system provides a flexible way to manage backtest parameters, strategy settings, and filter configurations through YAML files.
 
+| File | Purpose |
+| --- | --- |
+| `backtest_config.py` | Loads/validates scenarios defined in `backtest.yaml`, exposes helpers such as `load_backtest_config`. |
+| `filter_config.py` | Parses `filters.yaml`, builds filter objects for strategies or composer combinations. |
+| `strategies.yaml` | Declares enabled strategies, parameters, and ensembles for the composer. |
+| `backtest.yaml` | Houses preset risk profiles (default, conservative, aggressive, day_trading, etc.). |
+| `filters.yaml` | Named filter bundles mapped to stock/time/liquidity settings. |
+
+Every module—agents, strategies, composer, backtest—reads from this directory, ensuring the behaviour described in `spec.md` is driven by declarative configs rather than hardcoded values.
+
 ## Overview
 
 The configuration system consists of:

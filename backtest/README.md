@@ -4,6 +4,16 @@
 
 The backtest module provides comprehensive backtesting functionality for evaluating trading strategy performance against defined parameters. It serves as a robust testing framework that validates strategy effectiveness within specific constraints and conditions.
 
+| File | Responsibility |
+| --- | --- |
+| `engine.py` | `BacktestEngine` orchestration, runs single strategies or composer combinations, handles filters and transaction costs. |
+| `portfolio.py` | Positions, executions, and portfolio equity curve tracking. |
+| `metrics.py` | Computes returns, risk, Sharpe/Sortino, drawdown, VaR, trade stats, and benchmark comparisons. |
+| `results.py` | Serialization helpers plus comparison utilities for multiple runs. |
+| `__init__.py` | Convenience exports (e.g., `create_backtest_engine`). |
+
+The engine is designed to plug directly into the agents module: `AgentOutput.signals` feeds into the backtest for evaluation, and backtest metrics can be fed back as agent metadata for the learning loop described in `spec.md`.
+
 ## Objectives
 
 The primary objectives of this module align with the original requirements:

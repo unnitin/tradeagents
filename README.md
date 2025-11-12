@@ -1,519 +1,208 @@
-# **AstraQuant** 
-
+README.md
+AstraQuant – AI-Augmented Trading Strategy Engine
+AstraQuant is a modular algorithmic trading platform powered by AI agents. It enables you to generate, backtest, and deploy trading strategies that combine technical indicators, news sentiment, and even unconventional data like politicians’ stock trades. The system is designed to allow both human traders and AI agents to collaborate on building profitable strategies within a controlled, risk-managed framework.
 <div align="center">
 
-![CI/CD Pipeline](https://github.com/unnitin/trade/actions/workflows/ci.yml/badge.svg)
-![Quick Tests](https://github.com/unnitin/trade/actions/workflows/quick-test.yml/badge.svg)
-![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 </div>
-
-**Modular AI-Augmented Strategy Engine for Algo Trading**
-
----
-
-### 📌 Objective
-
-To build a flexible, intelligent algorithmic trading engine that:
-
-* Combines technical and LLM-based strategies
-* Enables dynamic strategy composition via config or AI/agent input
-* Supports clean modularity for data, features, signals, and execution
-* Connects to stable broker back-ends, executes trades and has safety rails built in
-
----
-
-### 🎯 Goals
-
-| Goal                                  | Description                                                                 | Status |
-| ------------------------------------- | --------------------------------------------------------------------------- | ------ |
-| 🧠 Intelligent Strategy Orchestration | Combine multiple strategies using logic, config, or AI-generated conditions | ✅ **Implemented** |
-| ⚙️ Strategy Modularity                | Each strategy encapsulated, reusable, and independently testable            | ✅ **Implemented** |
-| 🔍 Feature-Rich Data Layer            | Clean OHLCV + technical indicators + sentiment features                     | ✅ **Implemented** |
-| 📊 Backtest Support                   | Evaluate strategy combinations historically with performance metrics        | ✅ **Implemented** |
-| 🧪 LLM/NLP Integration                | Real-time or historical sentiment processing via FinBERT or GPT             | ✅ **Implemented** |
-| 🔄 Safety GuardRails             | Configurable guardrails to protect capital during turbulent markets      | 🔄 **In Progress** |
-| 🔄 Runtime Configurability            | Use YAML or command-line flags to toggle weights, strategies, signals and easily change strategies with version control      | ✅ **Implemented** |
-
----
-
-### 🧱 System Architecture (Current Implementation)
-
-| Module                      | Responsibilities                                                            | Status |
-| --------------------------- | --------------------------------------------------------------------------- | ------ |
-| `data/`                     | Data ingestion, resampling, feature generation (SMA, RSI, MACD, etc.)       | ✅ **Complete** |
-| `strategies/`               | Self-contained signal generation logic (e.g., RSIReversion, MACDCross)      | ✅ **Complete** |
-| `composer/`                 | Combines strategies using weights, logic, or LLM-generated rules            | ✅ **Complete** |
-| `utils/`                    | Score financial sentiment using FinBERT or LLM APIs                         | ✅ **Complete** |
-| `backtest/`                 | ✅ **NEW!** Comprehensive backtesting engine with performance metrics       | ✅ **Complete** |
-| `config/`                   | ✅ **NEW!** YAML-based configuration system for strategies and backtest     | ✅ **Complete** |
-| `tests/`                    | ✅ **NEW!** Comprehensive test suite (95+ tests, 99% pass rate)             | ✅ **Complete** |
-| `examples/`                 | ✅ **NEW!** Complete usage demonstrations and integration examples          | ✅ **Complete** |
-| `execute/`                  | (Planned) Launch strategies in live markets                                 | 🔄 **Planned** |
-| `monitor/`                  | (Planned) Measure effectiveness of strategies in live markets               | 🔄 **Planned** |
-
----
-
-### 🚀 **NEW: Comprehensive Backtest Module** 
-
-The backtest module provides production-ready strategy evaluation with:
-
-#### **🔬 Core Features**
-- **Strategy Performance Evaluation**: Test individual or combined strategies
-- **Parameter-Bound Results**: Results explicitly tied to test constraints and filters
-- **Comprehensive Metrics**: Sharpe, Sortino, Calmar ratios, drawdown analysis, VaR
-- **Advanced Filtering**: Stock filters (volume, price, volatility), time filters, liquidity filters
-- **Portfolio Management**: Position tracking, commission/slippage modeling, risk limits
-- **Composer Integration**: Test strategy combinations with majority vote, weighted average
-
-#### **📊 Performance Metrics**
-```python
-# Example metrics output
-PerformanceMetrics(
-    total_return=0.157,           # 15.7% total return
-    annualized_return=0.128,      # 12.8% annualized
-    annualized_volatility=0.187,  # 18.7% volatility
-    sharpe_ratio=0.85,            # Risk-adjusted performance
-    max_drawdown=-0.092,          # -9.2% max drawdown
-    win_rate=0.64,                # 64% winning trades
-    total_trades=47               # Trade frequency
-)
-```
-
-#### **⚙️ Configuration System**
-```yaml
-# config/backtest.yaml - YAML-based configuration
-default:
-  initial_capital: 100000.0
-  commission_rate: 0.001
-  max_position_size: 0.1
-  position_sizing_method: "fixed_percentage"
-  
-conservative:
-  max_position_size: 0.05
-  stop_loss_threshold: 0.02
-  
-aggressive:
-  max_position_size: 0.2
-  leverage_limit: 2.0
-```
-
-#### **🧪 Quick Start Examples**
-```python
-# Basic backtest
-from backtest import create_backtest_engine
-from strategies import SMACrossover
-
-engine = create_backtest_engine()
-strategy = SMACrossover(fast=20, slow=50)
-results = engine.run_backtest(
-    strategy=strategy,
-    symbols="AAPL",
-    start_date="2023-01-01",
-    end_date="2023-12-31"
-)
-
-# Advanced with filters and composer
-from filters import StockFilter, TimeFilter
-from composer import create_composer
-
-stock_filter = StockFilter(min_volume=1000000, min_price=10)
-time_filter = TimeFilter(exclude_earnings_periods=True)
-
-results = engine.run_composer_backtest(
-    combination_name="technical_ensemble",
-    symbols=["AAPL", "MSFT", "GOOGL"],
-    start_date="2023-01-01",
-    end_date="2023-12-31",
-    stock_filter=stock_filter,
-    time_filter=time_filter
-)
-```
-
----
-
-### 💡 Example Use Cases
-
-* 💬 **Implemented**: Use real-time news headlines to trigger RSI + Sentiment combos
-* 📈 **Implemented**: Use LLM to determine which strategies are active based on VIX or FOMC tone
-* 🧪 **Implemented**: Backtest Bollinger + MACD + sentiment over 6 months with volatility filters
-* 🎯 **Implemented**: Compare multiple strategy combinations with statistical significance testing
-* 📊 **Implemented**: Parameter sensitivity analysis across different market conditions
-
----
-
-### 🧪 MVP Scope - **COMPLETED** ✅
-
-✅ **Completed in MVP:**
-
-* ✅ OHLCV + features (RSI, SMA, MACD, BB, ATR)
-* ✅ Modular strategy classes with composer integration
-* ✅ LLM-based sentiment scoring (`FinBERT` etc.)
-* ✅ Strategy composer with `weighted_sum`, `majority_vote`, and `unanimous` methods
-* ✅ **Comprehensive backtesting** with performance measurement and filtering
-* ✅ **YAML-based configuration system** with multiple predefined scenarios
-* ✅ **95+ test suite** with unit and integration tests (99% pass rate)
-* ✅ **Complete documentation** and usage examples
-
-🔄 **Next Phase:**
-
-* Broker integration (Alpaca, InteractiveBrokers)
-* Execution engine with live trading
-* Web dashboard / monitoring interface
-* Runtime logging and alerting
-* Live Slack/Discord integration
-
----
-
-### 🚀 Success Criteria - **ACHIEVED** ✅
-
-* ✅ **Can run backtest with 3+ strategies via combined signal logic**
-* ✅ **Signal accuracy and behavior matches each strategy's expected pattern**
-* ✅ **Sentiment-based strategy generates reasonable directional signals**
-* ✅ **Runtime config allows switching weights and activations**
-* ✅ **Logs performance and exceptions during data + strategy runs**
-* ✅ **Comprehensive filtering system for stocks, time periods, and market conditions**
-* ✅ **Statistical performance metrics with benchmark comparison**
-* ✅ **Production-ready test coverage with CI/CD integration**
-
----
-
-### 🏗️ Code Quality Status - **Major Progress** 🎉
-
-#### **✅ Phase 1: Foundation (COMPLETED)**
-
-| Improvement | Description | Status |
-|-------------|-------------|---------|
-| 📦 **Modern Packaging** | Add `pyproject.toml` for Python packaging standards | 🔄 Planned |
-| 🎨 **Code Formatting** | Implement `black` + `ruff` for consistent formatting | 🔄 Planned |
-| 🏷️ **Type Hints** | Add comprehensive type annotations throughout | ✅ **Implemented** |
-| 📝 **Structured Logging** | Replace print statements with structured logging | 🔄 Planned |
-
-#### **✅ Phase 2: Quality & Testing (COMPLETED)**
-
-| Improvement | Description | Status |
-|-------------|-------------|---------|
-| 🧪 **Enhanced Testing** | Migrate to `pytest` with coverage reporting | ✅ **Implemented** |
-| ⚙️ **Configuration Management** | YAML-based config system for all parameters | ✅ **Implemented** |
-| 🚨 **Error Handling** | Comprehensive exception handling with retries | ✅ **Implemented** |
-| 🔄 **CI/CD Pipeline** | GitHub Actions for automated testing & quality checks | ✅ **Implemented** |
-
-#### **🔄 Phase 3: Performance & Security (IN PROGRESS)**
-
-| Improvement | Description | Status |
-|-------------|-------------|---------|
-| ⚡ **Caching Layer** | Implement caching for expensive operations | ✅ **Implemented** |
-| 🔒 **Security Hardening** | Secrets management, input validation, security scanning | 🔄 Planned |
-| 📊 **Performance Monitoring** | Memory profiling and performance benchmarks | 🔄 Planned |
-| 🔍 **Data Validation** | Schema validation for all external data inputs | ✅ **Implemented** |
-
-#### **✅ Current Architecture (IMPLEMENTED)**
-
-**Achieved Architecture:**
-```
-strategies/
-├── base.py → Enhanced with validation, logging, config ✅
-├── strategy_registry.py → Strategy factory pattern ✅
-└── [7 strategy implementations] ✅
-
-config/
-├── backtest_config.py → Centralized configuration ✅
-├── backtest.yaml → Environment-specific configs ✅
-└── __init__.py → Configuration management ✅
-
-backtest/
-├── engine.py → Core backtesting engine ✅
-├── portfolio.py → Portfolio and position management ✅
-├── metrics.py → Performance calculations ✅
-├── filters.py → Advanced filtering system ✅
-├── results.py → Results storage and analysis ✅
-└── __init__.py → Module exports ✅
-
-tests/
-├── unit_test/ → 42 pytest-based unit tests ✅
-├── integration/ → 12 end-to-end tests ✅
-├── test_backtest_runner.py → Specialized test runner ✅
-└── __init__.py → Test organization ✅
-
-examples/
-├── backtest_example.py → Basic usage ✅
-├── backtest_comprehensive_example.py → Advanced features ✅
-├── composer_backtest_example.py → Strategy combinations ✅
-└── config_example.py → Configuration examples ✅
-```
-
-#### **✅ Code Quality Achievements**
-
-- **Type Coverage**: 90%+ type hints on public APIs ✅
-- **Test Coverage**: 95+ tests with 99% pass rate ✅
-- **Documentation**: Google-style docstrings for all modules ✅
-- **Error Handling**: Comprehensive validation and exception handling ✅
-- **Performance**: Sub-100ms latency for strategy signal generation ✅
-- **Configuration**: Centralized YAML-based configuration system ✅
-
----
-
-### 🏛️ Politician Trade Tracking
-
-**Easy ways to track live politician stock trades in 2025**
-
-#### 🚀 Quick Start (5 Minutes)
-
-**Want to start RIGHT NOW?**
-
-1. Open Twitter/X on your phone 📱
-2. Search for `@PelosiTracker` 🔍
-3. Follow the account and hit the bell icon 🔔
-4. Done! You'll get alerts when politicians trade 🚨
-
-#### 📊 All Options Ranked
-
-##### 🥇 **Twitter/X Accounts** (EASIEST & FREE)
-
-**Popular Accounts:**
-- **@PelosiTracker** - 1M+ followers, most popular
-- **@CongressTrading** - Multi-politician coverage
-- **@CapitolTrades_** - Professional data posts
-- **@QuiverQuant** - Data-driven insights
-
-**✅ Pros:** 
-- Completely FREE
-- Real-time mobile alerts
-- No setup required
-- Community discussion
-
-**⚠️ Cons:**
-- Manual monitoring
-- Still subject to 45-day filing delays
-- Depends on accounts posting
-
-##### 🥈 **Paid API Services**
-
-**Quiver Quantitative** ⭐⭐⭐⭐⭐
-- **Cost:** $10-20/month
-- **URL:** https://api.quiverquant.com/
-- **Best for:** Automated trading systems
-- **Data:** Live House & Senate with API access
-
-**TradeInsight.info**
-- **Cost:** ~$20/month
-- **URL:** https://pelositrade.com/
-- **Best for:** Email notifications
-- **Features:** Alerts 240+ politicians + 10K+ insiders
-
-**Capitol Trades**
-- **Cost:** $15-30/month
-- **URL:** https://www.capitoltrades.com/
-- **Best for:** Research and analysis
-- **Data:** Comprehensive database
-
-##### 🥉 **Hybrid Approach** (RECOMMENDED)
-
-Combine multiple sources:
-- 📱 Twitter for instant alerts (FREE)
-- 💻 Quiver API for automation ($10/month)
-- 📧 TradeInsight for email alerts ($20/month)
-
-#### 🛠️ Implementation
-
-##### Twitter Setup
-1. **Follow Key Accounts:** @PelosiTracker, @CongressTrading, @CapitolTrades_, @QuiverQuant
-2. **Enable Notifications:** Click bell icon → "All Tweets"
-3. **Create Twitter List:** "Politician Trades" with all accounts
-4. **Mobile Setup:** Enable push notifications for instant alerts
-
-##### API Integration
-```python
-# Example: Using live politician tracker
-from data.politician_trades_live import LivePoliticianTracker
-
-# Initialize with API key
-tracker = LivePoliticianTracker(quiver_api_key='your_key_here')
-
-# Get recent trades
-live_trades = tracker.get_all_recent_trades(days_back=7)
-pelosi_trades = tracker.get_politician_recent_activity('Pelosi')
-trending = tracker.get_trending_stocks_live()
-
-# Set up alerts
-alerts = tracker.create_live_alerts(['Pelosi', 'AOC', 'Cruz'])
-```
-
-##### Twitter Integration
-```python
-# Example: Monitor Twitter for trades
-from data.twitter_politician_tracker import TwitterPoliticianTracker
-
-tracker = TwitterPoliticianTracker()
-trades = tracker.get_sample_trades()
-alerts = tracker.create_twitter_alerts()
-```
-
-#### 🎯 Recommendations by Use Case
-
-- **Casual Tracking (FREE):** Follow @PelosiTracker on Twitter + notifications
-- **Active Trading ($10-30/month):** Twitter alerts + Quiver API + TradeInsight email
-- **Automated Systems ($10-50/month):** Quiver API + Capitol Trades + Twitter sentiment
-
-#### ⚠️ Important Notes
-
-**Filing Delays:** Politicians have 45 days to report trades. Twitter accounts post when filings are made public.
-
-**Legal Considerations:** All data comes from required SEC filings. Following trades is legal. Do your own research.
-
-**Performance Disclaimers:** Past performance doesn't guarantee future results. Politicians may have access to non-public info.
-
-#### 🚀 Getting Started Files
-
-```bash
-# Virtual environment setup
-source venv/bin/activate
-
-# Demo all options
-python examples/politician_tracking_example.py
-
-# Test Twitter tracker
-python data/twitter_politician_tracker.py
-
-# Test live API tracker
-python data/politician_trades_live.py
-```
-
----
-
-### 📁 **Current Project Structure**
-
-```
-astraquant/                 # 🚀 Production-ready algo trading engine
-│
-├── 🧠 strategies/          # Strategy implementations
-│   ├── base.py            # ✅ Enhanced base strategy class
-│   ├── strategy_registry.py # ✅ Strategy factory pattern  
-│   ├── sma_crossover.py   # ✅ Simple moving average crossover
-│   ├── rsi_reversion.py   # ✅ RSI mean reversion
-│   ├── macd_cross.py      # ✅ MACD signal crossovers
-│   ├── bollinger_bounce.py # ✅ Bollinger band bounces
-│   ├── politician_following.py # ✅ Political trading signals
-│   ├── sentiment_llm.py   # ✅ LLM-based sentiment analysis
-│   └── atr_filter.py      # ✅ Volatility filtering
-│
-├── 🎼 composer/           # Strategy combination orchestration
-│   ├── strategy_composer.py # ✅ Multi-strategy combination logic
-│   └── README.md          # 📚 Composer documentation
-│
-├── 📊 backtest/           # ✅ **NEW!** Comprehensive backtesting engine
-│   ├── engine.py          # 🏗️ Core backtesting orchestration
-│   ├── portfolio.py       # 💰 Portfolio and position management
-│   ├── metrics.py         # 📈 Performance calculations (Sharpe, Sortino, etc.)
-│   ├── filters.py         # 🔍 Advanced filtering (stock, time, liquidity)
-│   ├── results.py         # 💾 Results storage and analysis
-│   └── README.md          # 📚 Comprehensive backtest documentation
-│
-├── ⚙️ config/            # ✅ **NEW!** YAML-based configuration system
-│   ├── backtest.yaml      # 📋 Backtest scenarios (default, conservative, aggressive)
-│   ├── backtest_config.py # 🔧 Configuration management classes
-│   └── __init__.py        # 📦 Config module exports
-│
-├── 🧪 tests/             # ✅ **NEW!** Comprehensive test suite (95+ tests)
-│   ├── unit_test/         # 🔬 42 unit tests covering all components
-│   │   ├── test_backtest.py # 🧪 Backtest module tests  
-│   │   ├── test_composer.py # 🎼 Composer tests
-│   │   ├── test_data.py   # 📊 Data layer tests
-│   │   └── test_strategies.py # 🧠 Strategy tests
-│   ├── integration/       # 🔗 12 end-to-end integration tests
-│   │   ├── test_backtest_integration.py # 🚀 Full workflow tests
-│   │   └── test_integration.py # 🔄 System integration tests
-│   ├── test_backtest_runner.py # 🏃 Specialized backtest test runner
-│   └── run_tests.py       # 🎯 Test orchestration
-│
-├── 📚 examples/          # ✅ **NEW!** Complete usage demonstrations
-│   ├── backtest_example.py # 🎯 Basic backtesting tutorial
-│   ├── backtest_comprehensive_example.py # 🎪 Advanced features demonstration
-│   ├── composer_backtest_example.py # 🎼 Strategy combination examples
-│   ├── config_example.py     # ⚙️ Configuration system tutorial
-│   ├── strategy_composer_example.py # 🎭 Composer functionality demo
-│   └── politician_tracking_example.py # 🏛️ Political trade tracking
-│
-├── 📊 data/              # Data ingestion and processing
-│   ├── fetch_data.py      # 📥 Market data retrieval
-│   ├── preprocess.py      # 🧹 Data cleaning and preparation
-│   ├── features.py        # 🔧 Technical indicator generation
-│   ├── constants.py       # 📋 Data constants and configurations
-│   └── README.md          # 📚 Data layer documentation
-│
-├── 🛠️ utils/            # Utility functions and helpers
-│   ├── sentiment_engine.py # 🧠 LLM sentiment analysis
-│   └── constants.py       # 📋 Global constants
-│
-├── 🔗 .github/           # CI/CD and automation
-│   └── workflows/         # 🔄 GitHub Actions workflows
-│       ├── ci.yml         # ✅ Continuous integration
-│       └── quick-test.yml # ⚡ Fast feedback testing
-│
-├── 📋 requirements.txt    # 📦 Project dependencies
-├── 📖 README.md          # 📚 This comprehensive guide
-└── 🐍 __init__.py        # 📦 Python package initialization
-```
-
-### 🚀 **Getting Started**
-
-#### **Quick Backtest Example**
-```bash
-# 1. Setup environment
-source venv/bin/activate
+📈 What is AstraQuant?
+AstraQuant is an “Investment Research Agent” that automates the process of developing a trading strategy:
+It scans market data (prices, technical indicators) and reads news/sentiment to identify opportunities.
+It incorporates unique data like public stock trades of lawmakers (so you can, for example, mirror what the most successful Congress members are doing in the market).
+It uses AI agents (LLMs) to analyze textual data (news headlines, social media) and quantify sentiment (bullish vs bearish) in real-time.
+It provides a strategy composer to combine multiple strategies or signals together, allowing creative hybrid strategies (e.g. “Trade when both RSI and political sentiment are bullish”).
+It includes a backtesting engine to evaluate strategies on historical data with detailed performance metrics (Sharpe, drawdowns, etc.), so you can validate ideas before risking money.
+In the future, it will connect to a live trading environment (paper or real trading) and monitor performance while adjusting strategies as needed.
+Why combine AI with trading? Traditional algos rely on fixed formulas and can miss the big picture (e.g. a sudden news event). By contrast, AI (especially LLM-based agents) can interpret unstructured information such as news articles or social media buzz
+arxiv.org
+, which together with technical analysis creates a more adaptive trading system. Recent studies highlight that multi-agent AI frameworks, where different agents specialize in sentiment, technicals, etc., can outperform standard models
+arxiv.org
+ – AstraQuant is built on this principle.
+🧰 Features & Modules
+AstraQuant is organized into modular components, each focused on a part of the trading process:
+Data Ingestion (data/): Fetches historical price data and live market info. Out-of-the-box it uses:
+Yahoo Finance for price history (stocks and crypto)
+GitHub
+.
+Quiver Quantitative for U.S. Congress trading disclosures (what stocks politicians are buying/selling)
+GitHub
+GitHub
+.
+(Plus hooks for news feeds or social media data – you can plug in a news API or use sample data provided.)
+Adds technical indicators like SMA, RSI, MACD, Bollinger Bands, etc., to the data for strategy use.
+Strategy Agents (strategies/): Self-contained strategy logic units. A few highlights:
+Technical Strategies – e.g. SMACrossover, RSIReversion, BollingerBounce. These look at price patterns and indicators to generate buy/sell signals.
+Sentiment Strategy – SentimentLLMStrategy uses an NLP model (FinBERT) to label news headlines as bullish or bearish, turning news into trade signals
+GitHub
+.
+Insider/Politician Strategies – e.g. PoliticianFollowingStrategy mimics trades reported by politicians (buys when, say, a senator buys)
+GitHub
+; PelosiTrackingStrategy specifically follows one highly-watched trader (Nancy Pelosi); CongressMomentumStrategy spots when many politicians all trade the same way on a stock (a momentum signal).
+All strategies share a common interface and can be configured with filters (e.g. only trade certain symbols or avoid penny stocks).
+Strategy Composer (composer/): Combines multiple strategies into an ensemble:
+Supports majority vote, weighted average, or unanimous decision methods
+GitHub
+GitHub
+. For example, you can require that two out of three strategies agree before acting (majority vote), or weight one strategy’s signal higher than others.
+Strategies and their combinations can be defined via a YAML config (no coding needed to adjust which strategies are active)
+GitHub
+GitHub
+.
+This is like your portfolio manager AI – it orchestrates the specialized agents.
+Backtest Engine (backtest/): A high-fidelity simulator to test strategies on historical data:
+Handles executing trades from signals with realistic constraints (position sizing, transaction costs, slippage).
+Provides comprehensive metrics output: total and annual returns, volatility, Sharpe ratio, Sortino, max drawdown, VaR, win rate, and more
+GitHub
+GitHub
+.
+You can benchmark against an index (e.g. SPY for S&P 500) to see if you’re beating the market.
+Supports filtering and risk settings during tests (e.g. apply a liquidity filter so it only trades stocks that had high volume historically, or set a max drawdown cut-off).
+User Configuration (config/): Customize strategies, ensembles, and risk parameters easily:
+Strategy config – enable/disable certain strategies, adjust parameters (like RSI threshold or which politicians to follow) through YAML.
+Risk profiles – preset configurations (e.g. “conservative” might use tighter stop-loss and smaller position sizes than “aggressive”). See config/backtest.yaml for examples of different risk scenario settings
+GitHub
+.
+API keys & environment – use .env or environment variables for sensitive keys (see Setup below).
+Live Trading Integration (Planned): While the current focus is research and backtesting, the architecture is ready for live deployment:
+A module execute/ (to be implemented) will connect to broker APIs (or crypto exchanges) to execute real trades based on the agent’s signals.
+A monitor/ module is planned to track live performance and perhaps trigger agent adjustments if things go off track.
+Mobile and Web frontends will interface via an API to get strategy suggestions and performance data in real-time.
+🚀 Getting Started
+1. Installation
+First, clone the repository and install the required packages. We recommend using a Python virtual environment.
+git clone https://github.com/unnitin/trade.git
+cd trade
+python3 -m venv venv && source venv/bin/activate   # create and activate virtual env
 pip install -r requirements.txt
-
-# 2. Run a basic backtest
-python examples/backtest_example.py
-
-# 3. Try advanced features
-python examples/backtest_comprehensive_example.py
-
-# 4. Test strategy combinations
-python examples/composer_backtest_example.py
-
-# 5. Explore configuration options
-python examples/config_example.py
-```
-
-#### **Run Tests**
-```bash
-# Run all tests
-python -m pytest tests/ -v
-
-# Run just backtest tests
-python tests/test_backtest_runner.py
-
-# Run with coverage
-python -m pytest tests/ --cov=. --cov-report=html
-```
-
-#### **Backtest Your Own Strategy**
-```python
-from backtest import create_backtest_engine
+This will install all necessary Python libraries (pandas, numpy, PyYAML, requests, transformers, etc.). Note: The transformers library will be installed for NLP – by default it will try to use PyTorch. If you don’t have PyTorch, install it first (e.g. pip install torch for CPU-only version).
+2. Configuration
+API Keys: If you want to fetch live data for politicians’ trades or use certain data providers, set the following environment variables (for example in a .env file or your shell profile):
+QUIVER_API_KEY – API key for Quiver Quantitative. Needed for live Congress trading data. (You can request a free key on their website.)
+CAPITOL_TRADES_API_KEY – API key for CapitolTrades (alternative source, not mandatory).
+ALPHA_VANTAGE_API_KEY – If you want to use Alpha Vantage for stock or crypto data (optional).
+FINNHUB_API_KEY – If you want to use Finnhub for news or alternative data (optional).
+The system will automatically pick up these keys. If a key is missing, related features will either use fallback data or return empty results with a warning (for example, missing Quiver API key means PoliticianFollowingStrategy will produce no signals and log a warning).
+Config Files: Check the config/ directory:
+strategies.yaml – define strategy ensembles and their parameters. You can edit this to try different strategy combinations.
+backtest.yaml – define backtest settings like initial capital, commission rate, and risk parameters for different scenarios (default, conservative, aggressive).
+filter_config.yaml (if present) – define any global filters to apply.
+No code changes are needed to adjust basic settings – just edit the YAML and rerun the agents.
+3. Usage Examples
+We provide example scripts in the examples/ folder to demonstrate typical workflows.
+Example 1: Backtest a Single Strategy
+Let's say you want to test a simple RSI reversion strategy on Apple (AAPL):
+from data.fetch_data import DataFetcher
 from strategies import RSIReversion
+from backtest.engine import BacktestEngine
 
-# Create backtest engine with default config
-engine = create_backtest_engine()
+# Fetch historical data for AAPL
+df = DataFetcher().get_stock_data("AAPL", start="2022-01-01", end="2022-12-31")
+df = df.set_index("date")  # use date as index for convenience
 
-# Initialize your strategy
-strategy = RSIReversion(low_thresh=25, high_thresh=75)
+# Add technical features (if needed, RSIReversion might compute internally too)
+# ... (e.g., compute RSI indicator if not done in strategy)
+
+# Initialize strategy and backtest engine
+strategy = RSIReversion(low_thresh=30, high_thresh=70)
+engine = BacktestEngine(initial_capital=100_000)
 
 # Run backtest
-results = engine.run_backtest(
-    strategy=strategy,
-    symbols=["AAPL", "MSFT", "GOOGL"],
-    start_date="2023-01-01", 
-    end_date="2023-12-31"
+result = engine.run_backtest(strategy=strategy, data=df, symbol="AAPL")
+print("Total Return:", f"{result.metrics.total_return*100:.2f}%")
+print("Sharpe Ratio:", f"{result.metrics.sharpe_ratio:.2f}")
+This will output performance metrics for that strategy in 2022. You can dig into result.trades for individual trades, etc.
+Example 2: Combined Strategy with Voting
+Combine a Moving Average Crossover and a Sentiment strategy on multiple stocks:
+from composer import StrategyComposer
+from backtest.engine import BacktestEngine
+
+# Create a composer and add strategies
+composer = StrategyComposer()
+composer.add_strategy(SMACrossover(fast=20, slow=50), weight=0.5, name="sma_cross")
+composer.add_strategy(SentimentLLMStrategy(sentiment_threshold=0.2), weight=0.5, name="news_sentiment")
+
+# Fetch data for a few symbols
+symbols = ["AAPL", "GOOGL", "MSFT"]
+fetcher = DataFetcher()
+market_data = {sym: fetcher.get_stock_data(sym, start="2023-01-01", end="2023-06-30") for sym in symbols}
+
+# Backtest the combined strategy
+engine = BacktestEngine(initial_capital=100_000)
+combo_result = engine.run_composer_backtest(
+    composer=composer, 
+    data_dict=market_data, 
+    combination_method="majority_vote"   # could also be 'weighted_average'
 )
 
-# Analyze results
-print(f"Total Return: {results.metrics.total_return:.2%}")
-print(f"Sharpe Ratio: {results.metrics.sharpe_ratio:.2f}")
-print(f"Max Drawdown: {results.metrics.max_drawdown:.2%}")
-```
+print("Combined Strategy Performance:")
+for metric, value in combo_result.metrics.to_dict().items():
+    print(f"{metric}: {value}")
+This will simulate trading those three stocks whenever both strategies (or the majority, in this case 2 out of 2) agree on a signal. You’ll get an aggregated performance for the portfolio containing AAPL, GOOGL, MSFT.
+Example 3: Using Politician Trade Signals
+from strategies import PoliticianFollowingStrategy
+from backtest.engine import BacktestEngine
 
----
+# Strategy that follows trades of all politicians over last 30 days
+politics_strat = PoliticianFollowingStrategy(days_back=30)
 
-**🎯 AstraQuant - Where AI meets algorithmic trading with production-ready backtesting, comprehensive testing, and intelligent strategy orchestration.**
+# Fetch data for a specific stock, e.g., NVDA (Nvidia)
+df_nvda = DataFetcher().get_stock_data("NVDA", start="2023-01-01", end="2023-09-30")
+df_nvda = df_nvda.set_index("date")
+
+# Backtest the strategy on NVDA
+engine = BacktestEngine(initial_capital=100_000)
+result = engine.run_backtest(strategy=politics_strat, data=df_nvda, symbol="NVDA")
+
+# The strategy will generate buy signals if any politician bought NVDA in the last 30 days (per the data),
+# and sell signals if they sold.
+print(f"NVDA - Politician-following strategy return: {result.metrics.total_return*100:.2f}%")
+(Keep in mind you need the API key for this to fetch actual trades; otherwise, if no data is fetched, the strategy will do nothing and result in 0% return.) This is a simplistic example of “if you can’t beat them, join them” – tracking insider-style trades.
+For more extensive examples, see the Jupyter notebooks or scripts in examples/:
+complete_workflow_example.py – runs through an entire process: data fetch, adding indicators, running multiple strategies, combining them, and analyzing results.
+strategy_composer_example.py – shows how to configure and run the strategy composer with config files.
+advanced_filter_example.py – demonstrates using filters (e.g., only allow trades when volume > 1,000,000).
+4. Interpreting Results
+After a backtest, you’ll typically get a PerformanceMetrics summary. Key fields:
+total_return – Total profit/loss as a fraction (0.25 = +25%).
+sharpe_ratio – Risk-adjusted return (above 1.0 is decent; higher is better).
+max_drawdown – Worst peak-to-valley loss during the period (as a negative fraction).
+win_rate – Percentage of trades that were profitable.
+beta – Correlation to the benchmark (e.g. if ~1, strategy moves with market; if 0, uncorrelated).
+alpha – Excess return over what beta would predict, i.e., skill-based return.
+etc.
+Use these to gauge if a strategy is worth pursuing. A good strategy might have a modest but positive total_return with low drawdown and Sharpe above 1. Strategies that only work in hindsight or overfit may show great returns but likely will have unstable performance out-of-sample (be cautious!).
+⚙️ Project Status and Roadmap
+Current Status: The core framework is in place:
+Core data ingestion, technical indicators, and backtest engine ✅
+Several example strategies implemented (momentum, mean-reversion, sentiment, insider following) ✅
+Configuration-driven strategy composition ✅
+Basic sentiment analysis via FinBERT ✅
+Extensive test coverage (>95 tests) for reliability ✅
+In Progress / Next Up:
+Safety Guardrails: Implementing more robust risk management (automated stop-loss logic, circuit breakers if too many losing trades) ⚙️ in progress.
+Real-time Capabilities: Transitioning from pure backtesting to also allow paper trading mode where the system can pull the latest market data periodically and simulate strategy in near-real-time.
+Front-end Integration: Developing a REST API so that a web or mobile interface can send a user’s strategy preferences to the backend and receive strategy suggestions or backtest results. (This is planned; currently, interaction is via code or console.)
+UI/UX: Designing the web dashboard and iPhone app to view strategy analytics, enter preferences, and eventually approve live trades.
+Additional AI: Exploring using GPT-4 (or similar) for generating human-readable explanations of strategy moves, or for parsing longer text (like Federal Reserve meeting minutes sentiment, etc.).
+Long-term Ideas:
+A marketplace of strategies where users can share AI-generated strategies and track their performance.
+Deploying the agent on cloud infrastructure for continuous learning (e.g. retrain the sentiment model with latest data, or let the agents “compete” in a simulated environment to improve).
+Expand to other data: earnings call transcripts (LLM reads them), alternative data like satellite imagery (for advanced users), etc., to truly create a holistic AI trader.
+🛠 Development & Contribution
+This project is set up to be contributor-friendly, including contributions by AI coding assistants. Key notes for developers:
+Ensure you have Python 3.9+ and see Installation above for environment setup.
+Run make test (or the equivalent commands) to ensure all tests pass after your changes.
+We use Black for formatting and flake8 for linting. You can run make lint and make format to auto-fix style issues before committing.
+When adding new strategies or features, include unit tests for them under tests/. If adding a new dependency, update requirements.txt.
+Pull Requests: Please include a clear description of the change and any relevant issue/tag. We have a CI pipeline that will run tests and code quality checks on PRs
+GitHub
+GitHub
+.
+For significant changes, it’s a good idea to open an issue or discussion first to align on design (or check if it’s in the roadmap).
+Using Cursor with AI (Codex): If you are leveraging AI to assist coding:
+We have a spec.md (this document) that outlines the intended behavior – feed it to the AI to give it context.
+Develop incrementally: e.g., “Implement a class that does X as per spec.md section Y” – many parts are decoupled so you can work on them one by one.
+Always validate AI-generated code against tests and sanity-check logical correctness, especially for financial calculations.
+✅ License & Disclaimer
+This project is open-source under the MIT License – see LICENSE file for details.
+Disclaimer: AstraQuant is for educational and research purposes. It is not financial advice and comes with no guarantee of performance. Always use caution when deploying trading algorithms. Past performance (especially backtest results) is not indicative of future results. If you do decide to hook this up to a live brokerage, use small amounts and observe thoroughly.

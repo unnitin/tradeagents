@@ -1,6 +1,7 @@
 from .fetch_data import DataFetcher, get_data
 from .preprocess import resample_ohlcv
 from .features import add_sma, add_ema, add_rsi, add_bollinger_bands, add_macd, add_atr
+from .news import NewsFetcher
 
 __all__ = [
     'DataFetcher',
@@ -11,5 +12,6 @@ __all__ = [
     'add_rsi',
     'add_bollinger_bands',
     'add_macd',
-    'add_atr'
+    'add_atr',
+    'NewsFetcher'
 ]

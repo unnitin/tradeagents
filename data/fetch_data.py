@@ -1,15 +1,20 @@
 # data/fetch_data.py
 
+import logging
+import os
+import re
+import time
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Union
+
 import pandas as pd  # type: ignore
 import requests  # type: ignore
-import re
-import os
-import time
 import urllib3
-from typing import Optional, List, Dict, Union, Any
-from datetime import datetime, timedelta
 
 from .constants import YAHOO_FINANCE_INTERVALS
+from .news import NewsFetcher
+
+logger = logging.getLogger(__name__)
 
 
 class DataFetcher:
@@ -25,6 +30,10 @@ class DataFetcher:
         api_keys = self._load_api_keys()
         self.quiver_api_key = quiver_api_key or api_keys.get('quiver_api_key')
         self.capitol_trades_api_key = capitol_trades_api_key or api_keys.get('capitol_trades_api_key')
+        self.news_fetcher = NewsFetcher(
+            newsapi_api_key=api_keys.get('newsapi_api_key'),
+            finnhub_api_key=api_keys.get('finnhub_api_key')
+        )
         
         # API Configuration - consolidated external service endpoints
         self.config = self._load_api_config()
@@ -85,8 +94,38 @@ class DataFetcher:
             'quiver_api_key': os.getenv('QUIVER_API_KEY'),
             'capitol_trades_api_key': os.getenv('CAPITOL_TRADES_API_KEY'),
             'alpha_vantage_api_key': os.getenv('ALPHA_VANTAGE_API_KEY'),
-            'finnhub_api_key': os.getenv('FINNHUB_API_KEY')
+            'finnhub_api_key': os.getenv('FINNHUB_API_KEY'),
+            'newsapi_api_key': os.getenv('NEWSAPI_API_KEY')
         }
+    
+    def get_news_data(self,
+                      symbols: Optional[Union[str, List[str]]] = None,
+                      start_date: Optional[str] = None,
+                      end_date: Optional[str] = None,
+                      limit: int = 100,
+                      provider: str = "newsapi") -> pd.DataFrame:
+        """
+        Fetch market-relevant news headlines suitable for sentiment analysis.
+        
+        Args:
+            symbols: Single ticker or list of tickers. Defaults to major tech names.
+            start_date: ISO date string (YYYY-MM-DD). Defaults to 3 days ago.
+            end_date: ISO date string (YYYY-MM-DD). Defaults to today.
+            limit: Maximum number of articles.
+            provider: Preferred provider ("newsapi" or "finnhub").
+            
+        Returns:
+            DataFrame with columns like: published_at, symbol, headline, news_headline, summary, source.
+        """
+        if isinstance(symbols, str):
+            symbols = [symbols]
+        return self.news_fetcher.get_headlines(
+            symbols=symbols,
+            start_date=start_date,
+            end_date=end_date,
+            limit=limit,
+            provider=provider
+        )
     
     def get_stock_data(self, ticker: str, interval: str = "1d", 
                       start: Optional[str] = None, end: Optional[str] = None) -> pd.DataFrame:
@@ -107,11 +146,11 @@ class DataFetcher:
         """
         
         try:
-            print(f"   🔄 Fetching {ticker} via Direct Yahoo Finance API...")
+            logger.info("Fetching %s via Direct Yahoo Finance API…", ticker)
             df = self._fetch_yahoo_direct(ticker, interval, start, end)
             
             if not df.empty:
-                print(f"   ✅ Successfully fetched {ticker}")
+                logger.info("Successfully fetched %s", ticker)
                 return self._process_dataframe(df)
             else:
                 raise ValueError(f"Empty dataframe returned for {ticker}")
@@ -213,7 +252,7 @@ class DataFetcher:
     def _fetch_quiver_data(self, endpoint: str, days_back: int) -> pd.DataFrame:
         """Internal method to fetch data from Quiver API."""
         if not self.quiver_api_key:
-            print("⚠️  Quiver API key required for live politician data")
+            logger.warning("Quiver API key required for live politician data")
             return pd.DataFrame()
         
         try:
@@ -255,7 +294,7 @@ class DataFetcher:
             return df.sort_values('trade_date', ascending=False)
             
         except Exception as e:
-            print(f"❌ Error fetching politician data: {e}")
+            logger.error("Error fetching politician data: %s", e)
             return pd.DataFrame()
     
     def get_politician_trades(self, chamber: str = "both", days_back: int = 30) -> pd.DataFrame:
@@ -361,16 +400,21 @@ class DataFetcher:
         return df[df['confidence'] > 0.5]
     
     def get_combined_data(self, ticker: str, include_politician_trades: bool = True, 
-                         include_twitter_data: bool = False, days_back: int = 30) -> Dict[str, pd.DataFrame]:
+                         include_twitter_data: bool = False, include_news_data: bool = False,
+                         days_back: int = 30) -> Dict[str, pd.DataFrame]:
         """Get combined stock and political data for a ticker."""
         result = {}
         
         # Get stock data
         try:
             result['stock_data'] = self.get_stock_data(ticker)
-            print(f"✅ Stock data for {ticker}: {result['stock_data'].shape[0]} rows")
+            logger.info(
+                "Stock data for %s: %s rows",
+                ticker,
+                result['stock_data'].shape[0],
+            )
         except Exception as e:
-            print(f"⚠️ Could not fetch stock data for {ticker}: {e}")
+            logger.warning("Could not fetch stock data for %s: %s", ticker, e)
             result['stock_data'] = pd.DataFrame()
         
         # Get politician trades
@@ -380,11 +424,13 @@ class DataFetcher:
                 if not all_trades.empty and 'stock_ticker' in all_trades.columns:
                     ticker_trades = all_trades[all_trades['stock_ticker'].str.upper() == ticker.upper()]
                     result['politician_trades'] = ticker_trades
-                    print(f"✅ Found {len(ticker_trades)} politician trades for {ticker}")
+                    logger.info(
+                        "Found %s politician trades for %s", len(ticker_trades), ticker
+                    )
                 else:
                     result['politician_trades'] = pd.DataFrame()
             except Exception as e:
-                print(f"⚠️ Could not fetch politician trades: {e}")
+                logger.warning("Could not fetch politician trades: %s", e)
                 result['politician_trades'] = pd.DataFrame()
         
         # Get Twitter data
@@ -396,9 +442,28 @@ class DataFetcher:
                     result['twitter_trades'] = ticker_twitter
                 else:
                     result['twitter_trades'] = twitter_trades
-                print(f"✅ Found {len(result.get('twitter_trades', []))} Twitter mentions")
+                logger.info(
+                    "Found %s Twitter mentions",
+                    len(result.get('twitter_trades', [])),
+                )
             except Exception as e:
                 result['twitter_trades'] = pd.DataFrame()
+        
+        if include_news_data:
+            try:
+                news_df = self.get_news_data(
+                    symbols=[ticker],
+                    start_date=(datetime.now() - timedelta(days=days_back)).strftime('%Y-%m-%d'),
+                    end_date=datetime.now().strftime('%Y-%m-%d'),
+                    limit=200
+                )
+                result['news_headlines'] = news_df
+                logger.info(
+                    "Retrieved %s news headlines for sentiment scoring", len(news_df)
+                )
+            except Exception as e:
+                logger.warning("Could not fetch news data: %s", e)
+                result['news_headlines'] = pd.DataFrame()
         
         return result
     
@@ -428,19 +493,20 @@ def get_data(ticker: str, interval: str = "1m", start: Optional[str] = None, end
 
 
 if __name__ == "__main__":
-    print("🚀 Unified DataFetcher - All-in-One Trading Data")
+    logging.basicConfig(level=logging.INFO)
+    logger.info("Unified DataFetcher - All-in-One Trading Data")
     fetcher = DataFetcher()
     
-    print("\n📱 Testing Twitter functionality...")
+    logger.info("Testing Twitter functionality…")
     twitter_data = fetcher.get_twitter_trades()
-    print(f"✅ Twitter trades: {twitter_data.shape}")
+    logger.info("Twitter trades shape: %s", twitter_data.shape)
     
-    print("\n📈 Testing stock data...")
+    logger.info("Testing stock data…")
     try:
         stock_data = fetcher.get_stock_data("AAPL")
-        print(f"✅ AAPL stock data: {stock_data.shape}")
+        logger.info("AAPL stock data shape: %s", stock_data.shape)
     except Exception as e:
-        print(f"⚠️ Stock test failed: {e}")
+        logger.exception("Stock test failed: %s", e)
     
-    print("\n✅ All core functionality working!")
-    print("💡 Use DataFetcher class as your single entry point for all data operations.")
+    logger.info("All core functionality working!")
+    logger.info("Use DataFetcher as the single entry point for all data operations.")
