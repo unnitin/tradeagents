@@ -4,6 +4,7 @@ from .base import Agent, AgentContext, AgentOutput, AgentError
 from .news_sentiment_agent import NewsSentimentAgent
 from .registry import registry
 from .risk_agent import RiskManagementAgent
+from .orchestrator_agent import StrategyOrchestratorAgent
 from .strategy_agent import StrategyAgent
 from .technical_agent import TechnicalCompositeAgent
 
@@ -16,5 +17,6 @@ __all__ = [
     "NewsSentimentAgent",
     "TechnicalCompositeAgent",
     "RiskManagementAgent",
+    "StrategyOrchestratorAgent",
     "registry",
 ]

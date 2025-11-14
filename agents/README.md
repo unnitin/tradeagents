@@ -7,6 +7,7 @@ The `agents/` package turns AstraQuant’s autonomous workflow from the spec int
 | `NewsSentimentAgent` | Score headlines with FinBERT/LLM sentiment and emit directional signals. | `context.news_data` dataframe with `news_headline` column. | Bullish/bearish series plus metadata about thresholds. |
 | `TechnicalCompositeAgent` | Portfolio-manager role that asks `StrategyComposer` to run weighted/voting ensembles. | `context.price_data` (OHLCV + features) and `config/strategies.yaml`. | Combined technical signal series with combination metadata. |
 | `RiskManagementAgent` | Safety layer that caps concurrent trades, draws down leverage during stress, and zeros signals when volatility spikes. | `context.data['candidate_signals']` plus optional `context.data['risk_indicators']` and `context.metadata['current_drawdown']`. | Adjusted signal frame/series + audit trail of enforcement notes. |
+| `StrategyOrchestratorAgent` | End-to-end “portfolio captain” that evaluates market context, runs the composer, launches an immediate backtest, and summarizes readiness for deployment. | `context.price_data` plus symbol/date metadata (and optional `news_data`). | Signals + rationale + backtest metrics (return, Sharpe, drawdown, trades). |
 
 ### Core API
 
@@ -44,6 +45,7 @@ context = AgentContext(
 technical_agent = registry.create("technical_composite", combination_name="technical_ensemble")
 sentiment_agent = registry.create("news_sentiment")
 risk_agent = registry.create("risk_manager", volatility_column="ATR14", volatility_threshold=5.0)
+orchestrator = registry.create("strategy_orchestrator")
 
 technical_signals = technical_agent(context)
 sentiment_signals = sentiment_agent(context)
@@ -53,7 +55,13 @@ risk_adjusted = risk_agent(
         "sentiment": sentiment_signals.signals,
     })
 )
+
+deployment_view = orchestrator(
+    context.with_updates(
+        candidate_signals={"technical": technical_signals.signals},
+    )
+)
+# deployment_view.reasoning now holds a human-readable summary of the proposed plan.
 ```
 
 This README will evolve alongside the module as more autonomous behaviour lands (LLM debate loops, reinforcement learning optimizers, etc.). For now it captures the MVP functionality and the next objectives so contributors know where to plug in.
-

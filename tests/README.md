@@ -15,6 +15,7 @@ tests/
 ## Running the Suite
 
 ```bash
+export ASTRAQUANT_SENTIMENT_MODE=mock  # skip FinBERT downloads during tests
 python3 -m unittest discover -s tests -t .
 # or
 python3 tests/run_tests.py
@@ -27,4 +28,3 @@ python3 tests/run_tests.py
 - Mirror the safety guardrails from the specification (position limits, drawdown stops) with assertions inside integration cases.
 
 Add new tests next to the code they exercise and update this README if new suites or tooling appear.
-

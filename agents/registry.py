@@ -6,6 +6,7 @@ from typing import Callable, Dict, List, Optional
 
 from agents.base import Agent
 from agents.news_sentiment_agent import NewsSentimentAgent
+from agents.orchestrator_agent import StrategyOrchestratorAgent
 from agents.risk_agent import RiskManagementAgent
 from agents.technical_agent import TechnicalCompositeAgent
 
@@ -37,4 +38,6 @@ registry.register(
     "technical_composite", lambda **params: TechnicalCompositeAgent(**params)
 )
 registry.register("risk_manager", lambda **params: RiskManagementAgent(**params))
-
+registry.register(
+    "strategy_orchestrator", lambda **params: StrategyOrchestratorAgent(**params)
+)

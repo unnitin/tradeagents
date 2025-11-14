@@ -1,5 +1,6 @@
 """
 Generic wrappers that turn Strategy instances into fully fledged agents.
+TODO: @codex_agent - Highlight the purpose of this module more comprehensively - explain with examples what it should do and why it is needed.
 """
 
 from __future__ import annotations
