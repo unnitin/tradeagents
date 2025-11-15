@@ -3,6 +3,8 @@
 
 ## System Design
 
+_High-level blueprint covering services, flows, and data contracts for the Trade platform._
+
 The architecture explicitly supports:
 
 * Modular indicators/checks (A)

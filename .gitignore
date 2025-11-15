@@ -1,0 +1,36 @@
+# General
+.DS_Store
+.env
+*.log
+
+# Python backend
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.eggs/
+*.pytest_cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+instance/
+venv/
+.venv/
+build/
+dist/
+
+# Node/TypeScript frontend
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+out/
+coverage/
+.vscode/
+.eslintcache
+.parcel-cache/
+*.tsbuildinfo
+
+# OS specific
+Thumbs.db

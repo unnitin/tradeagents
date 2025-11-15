@@ -1,5 +1,7 @@
 # Strategy & Backtest API Specification
 
+_Reference for REST/JSON contracts that power strategy creation, orchestration, and backtesting._
+
 ## 1. Strategy Service
 
 ### 1.1 Entities

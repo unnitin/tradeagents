@@ -1,6 +1,8 @@
 
 ## Core User Flows
 
+_Step-by-step narratives showing how users and agents traverse the core product surfaces._
+
 ### Flow A – Explore Data & Indicators (Modular Checks)
 
 **Goal:** Let user (and agents) explore price + news + indicators with a **modular, extensible indicator/check system**.
