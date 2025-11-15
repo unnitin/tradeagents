@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+npm-debug.log*
+yarn-*.log
+pnpm-lock.yaml
+package-lock.json
+*.tsbuildinfo

@@ -1,0 +1,591 @@
+openapi: 3.0.3
+info:
+  title: Agentic Trade Strategy & Backtest API
+  version: 1.0.0
+servers:
+  - url: https://api.agentictrade.local
+paths:
+  /strategies:
+    post:
+      summary: Create a new strategy with an initial version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StrategyCreateRequest'
+      responses:
+        '201':
+          description: Strategy created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyCreateResponse'
+    get:
+      summary: List strategies for a user
+      parameters:
+        - in: query
+          name: user_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of strategies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StrategySummary'
+  /strategies/{strategy_id}:
+    get:
+      summary: Get a strategy and its current version
+      parameters:
+        - in: path
+          name: strategy_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Strategy with current version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  strategy:
+                    $ref: '#/components/schemas/Strategy'
+                  current_version:
+                    $ref: '#/components/schemas/StrategyVersion'
+  /strategies/{strategy_id}/versions:
+    get:
+      summary: List all versions of a strategy
+      parameters:
+        - in: path
+          name: strategy_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Versions list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StrategyVersionSummary'
+    post:
+      summary: Create a new strategy version
+      parameters:
+        - in: path
+          name: strategy_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StrategyVersionCreateRequest'
+      responses:
+        '201':
+          description: Strategy version created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    $ref: '#/components/schemas/StrategyVersion'
+                  strategy:
+                    $ref: '#/components/schemas/Strategy'
+  /strategy-versions/{version_id}:
+    get:
+      summary: Get a specific strategy version
+      parameters:
+        - in: path
+          name: version_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Strategy version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyVersion'
+  /strategies/validate:
+    post:
+      summary: Validate a strategy specification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                json_spec:
+                  type: object
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                        message:
+                          type: string
+  /backtests:
+    post:
+      summary: Start a new backtest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BacktestCreateRequest'
+      responses:
+        '202':
+          description: Backtest accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  backtest:
+                    $ref: '#/components/schemas/Backtest'
+    get:
+      summary: List backtests for a user
+      parameters:
+        - in: query
+          name: user_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Backtests list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Backtest'
+  /backtests/{backtest_id}:
+    get:
+      summary: Get backtest status and summary
+      parameters:
+        - in: path
+          name: backtest_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Backtest
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Backtest'
+  /backtests/{backtest_id}/results:
+    get:
+      summary: Get full backtest results
+      parameters:
+        - in: path
+          name: backtest_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Backtest results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BacktestResult'
+  /agent/strategies/from-text:
+    post:
+      summary: Create strategy from natural language
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentStrategyFromTextRequest'
+      responses:
+        '201':
+          description: Strategy created by agent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  strategy:
+                    $ref: '#/components/schemas/Strategy'
+                  version:
+                    $ref: '#/components/schemas/StrategyVersion'
+  /agent/strategies/{version_id}/refine:
+    post:
+      summary: Refine an existing strategy version via natural language
+      parameters:
+        - in: path
+          name: version_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentStrategyRefineRequest'
+      responses:
+        '201':
+          description: New refined strategy version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  old_version_id:
+                    type: string
+                  new_version:
+                    $ref: '#/components/schemas/StrategyVersion'
+  /agent/backtests:
+    post:
+      summary: Start a backtest triggered by an agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentBacktestCreateRequest'
+      responses:
+        '202':
+          description: Backtest accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  backtest:
+                    $ref: '#/components/schemas/Backtest'
+  /agent/backtests/{backtest_id}/explain:
+    post:
+      summary: Explain a backtest result using an LLM
+      parameters:
+        - in: path
+          name: backtest_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentBacktestExplainRequest'
+      responses:
+        '200':
+          description: Explanation generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentBacktestExplainResponse'
+components:
+  schemas:
+    Strategy:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        current_version_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    StrategySummary:
+      allOf:
+        - $ref: '#/components/schemas/Strategy'
+        - type: object
+          properties:
+            origin_latest:
+              type: string
+    StrategyVersion:
+      type: object
+      properties:
+        id:
+          type: string
+        strategy_id:
+          type: string
+        json_spec:
+          type: object
+        nl_summary:
+          type: string
+        origin:
+          type: string
+        created_by:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    StrategyVersionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        origin:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    StrategyCreateRequest:
+      type: object
+      properties:
+        user_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        json_spec:
+          type: object
+        nl_summary:
+          type: string
+        origin:
+          type: string
+      required: [user_id, name, json_spec, nl_summary, origin]
+    StrategyCreateResponse:
+      type: object
+      properties:
+        strategy:
+          $ref: '#/components/schemas/Strategy'
+        version:
+          $ref: '#/components/schemas/StrategyVersion'
+    StrategyVersionCreateRequest:
+      type: object
+      properties:
+        json_spec:
+          type: object
+        nl_summary:
+          type: string
+        origin:
+          type: string
+        created_by:
+          type: string
+      required: [json_spec, nl_summary, origin]
+    Backtest:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        strategy_version_id:
+          type: string
+        status:
+          type: string
+        config:
+          $ref: '#/components/schemas/BacktestConfig'
+        metrics_summary:
+          $ref: '#/components/schemas/BacktestMetricsSummary'
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+    BacktestConfig:
+      type: object
+      properties:
+        universe_override:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        initial_capital:
+          type: number
+        transaction_cost_bps:
+          type: integer
+        slippage_model:
+          type: string
+    BacktestMetricsSummary:
+      type: object
+      properties:
+        total_return:
+          type: number
+        cagr:
+          type: number
+        max_drawdown:
+          type: number
+        sharpe:
+          type: number
+    BacktestCreateRequest:
+      allOf:
+        - $ref: '#/components/schemas/AgentBacktestCreateBase'
+    BacktestResult:
+      type: object
+      properties:
+        id:
+          type: string
+        equity_curve:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              equity:
+                type: number
+        drawdowns:
+          type: array
+          items:
+            type: object
+            properties:
+              start:
+                type: string
+                format: date
+              end:
+                type: string
+                format: date
+              depth:
+                type: number
+        trades:
+          type: array
+          items:
+            type: object
+            properties:
+              symbol:
+                type: string
+              side:
+                type: string
+              entry_date:
+                type: string
+                format: date
+              exit_date:
+                type: string
+                format: date
+              entry_price:
+                type: number
+              exit_price:
+                type: number
+              quantity:
+                type: number
+              pnl:
+                type: number
+              return_pct:
+                type: number
+        per_period_metrics:
+          type: array
+          items:
+            type: object
+            properties:
+              period:
+                type: string
+              return:
+                type: number
+    AgentStrategyFromTextRequest:
+      type: object
+      properties:
+        user_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        natural_language_prompt:
+          type: string
+      required: [user_id, name, natural_language_prompt]
+    AgentStrategyRefineRequest:
+      type: object
+      properties:
+        user_id:
+          type: string
+        instruction:
+          type: string
+      required: [user_id, instruction]
+    AgentBacktestCreateBase:
+      type: object
+      properties:
+        user_id:
+          type: string
+        strategy_version_id:
+          type: string
+        config:
+          $ref: '#/components/schemas/BacktestConfig'
+        tags:
+          type: array
+          items:
+            type: string
+      required: [user_id, strategy_version_id, config]
+    AgentBacktestCreateRequest:
+      allOf:
+        - $ref: '#/components/schemas/AgentBacktestCreateBase'
+        - type: object
+          properties:
+            conversation_id:
+              type: string
+    AgentBacktestExplainRequest:
+      type: object
+      properties:
+        user_id:
+          type: string
+        detail_level:
+          type: string
+          enum: [summary, detailed]
+        focus:
+          type: array
+          items:
+            type: string
+      required: [user_id]
+    AgentBacktestExplainResponse:
+      type: object
+      properties:
+        explanation:
+          type: string
+        suggested_changes:
+          type: array
+          items:
+            type: string
