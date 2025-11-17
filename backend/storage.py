@@ -22,16 +22,19 @@ def fetch_prices(
     db_path: str = DATA_DB_PATH,
 ) -> List[Dict]:
     """Return cached OHLCV rows ordered by timestamp."""
-    with _connect(db_path) as conn:
-        rows = conn.execute(
-            """
-            SELECT ts, open, high, low, close, volume
-            FROM prices
-            WHERE symbol = ? AND interval = ? AND ts >= ? AND ts <= ?
-            ORDER BY ts ASC
-            """,
-            (symbol, interval, start.isoformat(), end.isoformat()),
-        ).fetchall()
+    try:
+        with _connect(db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT ts, open, high, low, close, volume
+                FROM prices
+                WHERE symbol = ? AND interval = ? AND ts >= ? AND ts <= ?
+                ORDER BY ts ASC
+                """,
+                (symbol, interval, start.isoformat(), end.isoformat()),
+            ).fetchall()
+    except sqlite3.OperationalError:
+        return []
     return [
         {
             "date": ts,
@@ -62,8 +65,11 @@ def fetch_features(
         WHERE symbol = ? AND interval = ? AND ts >= ? AND ts <= ?
         ORDER BY ts ASC
     """
-    with _connect(db_path) as conn:
-        rows = conn.execute(query, params).fetchall()
+    try:
+        with _connect(db_path) as conn:
+            rows = conn.execute(query, params).fetchall()
+    except sqlite3.OperationalError:
+        return []
 
     grouped: Dict[str, Dict] = defaultdict(lambda: {"date": None})
     for ts, name, value in rows:
@@ -82,16 +88,19 @@ def fetch_news(
     db_path: str = DATA_DB_PATH,
 ) -> List[Dict]:
     """Return cached news rows ordered by publication time."""
-    with _connect(db_path) as conn:
-        rows = conn.execute(
-            """
-            SELECT symbol, published_at, headline, summary, url
-            FROM news
-            WHERE symbol = ? AND published_at >= ? AND published_at <= ?
-            ORDER BY published_at ASC
-            """,
-            (symbol, start.isoformat(), end.isoformat()),
-        ).fetchall()
+    try:
+        with _connect(db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT symbol, published_at, headline, summary, url
+                FROM news
+                WHERE symbol = ? AND published_at >= ? AND published_at <= ?
+                ORDER BY published_at ASC
+                """,
+                (symbol, start.isoformat(), end.isoformat()),
+            ).fetchall()
+    except sqlite3.OperationalError:
+        return []
     return [
         {
             "symbol": sym,
@@ -111,16 +120,19 @@ def fetch_trades(
     db_path: str = DATA_DB_PATH,
 ) -> List[Dict]:
     """Return cached trade disclosures ordered by execution time."""
-    with _connect(db_path) as conn:
-        rows = conn.execute(
-            """
-            SELECT symbol, executed_at, trader, action, quantity, price, source
-            FROM trades
-            WHERE symbol = ? AND executed_at >= ? AND executed_at <= ?
-            ORDER BY executed_at ASC
-            """,
-            (symbol, start.isoformat(), end.isoformat()),
-        ).fetchall()
+    try:
+        with _connect(db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT symbol, executed_at, trader, action, quantity, price, source
+                FROM trades
+                WHERE symbol = ? AND executed_at >= ? AND executed_at <= ?
+                ORDER BY executed_at ASC
+                """,
+                (symbol, start.isoformat(), end.isoformat()),
+            ).fetchall()
+    except sqlite3.OperationalError:
+        return []
     return [
         {
             "symbol": sym,

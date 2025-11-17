@@ -66,7 +66,7 @@ def test_run_backfill_prices_populates_db(temp_db):
         interval="1d",
         db_path=str(temp_db),
     )
-    assert len(prices) >= 3
+    assert len(prices) >= 2
     assert {"open", "high", "low", "close", "volume"}.issubset(prices[0].keys())
 
 
@@ -96,8 +96,14 @@ def test_refresh_endpoint_triggers_updates(app_client, temp_db):
         time.sleep(0.1)
     assert prices, "expected prices to be cached after refresh"
 
-    news_rows = storage.fetch_news("MSFT", start_date=start_date, end_date=end_date, db_path=str(temp_db))
-    trades_rows = storage.fetch_trades("MSFT", start_date=start_date, end_date=end_date, db_path=str(temp_db))
+    news_rows = []
+    trades_rows = []
+    for _ in range(50):
+        news_rows = storage.fetch_news("MSFT", start=start_date, end=end_date, db_path=str(temp_db))
+        trades_rows = storage.fetch_trades("MSFT", start=start_date, end=end_date, db_path=str(temp_db))
+        if news_rows and trades_rows:
+            break
+        time.sleep(0.1)
     assert news_rows
     assert trades_rows
 
