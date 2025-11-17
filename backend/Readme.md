@@ -28,6 +28,12 @@
 - Next step: add a lightweight store (SQLite/Postgres) for request auditing, feature caching, and rate-limit metadata.
 - Longer term: move to Postgres with read replicas; add Redis for caching aggregates and throttling.
 
+## Next Steps
+- Add connectors to news, politician and other data providers
+- Backfill OHCLV data at 15m frequency for last 3 years of all US stocks (excl penny stocks)
+- Backfill news and other trade trackers to min(the extent of data availability, 3 years)
+- Add technical features such as bollinger bands, RS etc. 
+
 ## Path to production hardening
 - Add retry/backoff + circuit breakers around Yahoo providers; surface dependency health in `/health`.
 - Introduce request metrics/tracing (OpenTelemetry) and structured logging.

@@ -18,6 +18,9 @@ venv/
 .venv/
 build/
 dist/
+data.db
+data.db-shm
+data.db-wal
 
 # Node/TypeScript frontend
 node_modules/
