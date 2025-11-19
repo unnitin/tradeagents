@@ -40,3 +40,9 @@
 - Add input validation schemas (pydantic) and tighter error models.
 - Scale via Gunicorn/Uvicorn + horizontal pods; cache hot symbols/features.
 - Security: authn/z middleware, secrets management, and outbound call allowlisting.
+
+## Backfill guidance (SQLite caches)
+- Use `automation.py` helpers: `run_backfill_prices` for a clean seed, `run_incremental_update_prices` for ongoing upserts; equivalent helpers exist for news/trades.
+- Rough timing: backfilling the top ~200 symbols for ~4 weeks of daily bars is typically on the order of 1–2 minutes end-to-end if the provider responds in ~100–300 ms per symbol. Slower providers (1–2s/symbol) or rate limits can push this to ~5–7 minutes; feature computation and SQLite writes are negligible compared to network.
+- Parameterize by environment: symbol universe, interval (e.g., `1d` vs `15m`), feature set, lookback window, and DB path should be configurable (e.g., `.env` or config file) so dev can stay lightweight while prod uses the full universe.
+- Storage: local SQLite at `data.db` works for dev. A mounted volume like `/Volumes/fast-expansion` is present but currently not writable from this environment; confirm write permissions before using it for shared caches.

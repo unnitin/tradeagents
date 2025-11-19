@@ -10,7 +10,7 @@ export function HeroSection() {
           {[
             { label: 'Home', href: '/' },
             { label: 'Dashboard', href: '/dashboard.html' },
-            { label: 'Create Strategy', href: '#' },
+            { label: 'Create Strategy', href: '/create-strategy.html' },
             { label: 'Backtest', href: '#' },
             { label: 'Manage Risk', href: '#' },
             { label: 'Notifications', href: '#' },
