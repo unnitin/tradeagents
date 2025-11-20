@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, abort, jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from .constants import DATE_FORMAT, DATA_DB_PATH
+from .utils.constants import DATE_FORMAT, DATA_DB_PATH
 from .data_provider import (
     DataGateway,
     MarketDataProvider,
@@ -19,7 +19,7 @@ from .data_provider import (
     YahooNewsDataProvider,
 )
 from .feature_engineering import FeatureEngineeringError, compute_features
-from . import automation
+from .utils import data_refresh
 from .storage import fetch_features, fetch_news, fetch_prices, fetch_trades
 
 
@@ -255,7 +255,7 @@ def create_app(
 
         try:
             executor.submit(
-                automation.run_incremental_update_prices,
+                data_refresh.run_incremental_update_prices,
                 provider=data_gateway._market_provider,
                 symbols=symbols,
                 interval=interval,
@@ -266,7 +266,7 @@ def create_app(
 
             if refresh_news and data_gateway._news_provider:
                 executor.submit(
-                    automation.run_incremental_update_news,
+                    data_refresh.run_incremental_update_news,
                     symbols=symbols,
                     db_path=db_path,
                     news_provider=data_gateway._news_provider,
@@ -275,7 +275,7 @@ def create_app(
 
             if refresh_trades and trade_provider:
                 executor.submit(
-                    automation.run_incremental_update_trades,
+                    data_refresh.run_incremental_update_trades,
                     symbols=symbols,
                     db_path=db_path,
                     trade_provider=trade_provider,

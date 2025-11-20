@@ -6,9 +6,10 @@ from datetime import date, datetime
 import sqlite3
 from typing import Dict, Iterable, List, Optional
 
-from .constants import DATA_DB_PATH
+from .utils.constants import DATA_DB_PATH
 
 
+# TODO: @Codex-agent - move this to utils and import everywhere as needed
 def _connect(db_path: str = DATA_DB_PATH) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     return conn

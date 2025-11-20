@@ -1,0 +1,36 @@
+environments:
+  dev:
+    env: dev
+    location: local
+    storage:
+      engine: sqlite
+      location: repo
+      path: data.db
+      notes: Local development uses SQLite on the repo root.
+    price:
+      tickers: [AAPL, MSFT, NVDA]
+      lookback_days: 30
+      interval: 1d
+    news:
+      provider: null
+      notes: TBD/none for development
+    trades:
+      provider: null
+      notes: TBD/none for development
+  prod:
+    env: prod
+    location: aws-us-east-1
+    storage:
+      engine: aws-rds
+      location: aurora/prices
+      notes: Placeholder for managed storage; replace with AWS resource IDs.
+    price:
+      tickers: [SPY, QQQ, IWM, DIA]
+      lookback_days: 90
+      interval: 15m
+    news:
+      provider: null
+      notes: TBD/none for production
+    trades:
+      provider: null
+      notes: TBD/none for production
