@@ -14,7 +14,18 @@ FeatureRow = Dict[str, Union[str, Optional[float]]]
 
 
 def compute_features(candles: List[PriceCandle], requested_features: Iterable[str]) -> List[FeatureRow]:
-    """Compute the requested features for every candle in the series."""
+    """Compute the requested features for every candle in the series.
+
+    Args:
+        candles: Ordered OHLCV records used as raw inputs.
+        requested_features: Iterable of feature identifiers (e.g., sma_5).
+
+    Returns:
+        List of dicts where each dict is keyed by feature name and includes the candle date.
+
+    Raises:
+        FeatureEngineeringError: If the feature list is empty or contains unsupported names.
+    """
 
     feature_list = list(requested_features)
     if not feature_list:
@@ -54,6 +65,18 @@ def compute_features(candles: List[PriceCandle], requested_features: Iterable[st
 
 
 def _parse_window(feature_name: str, prefix: str) -> int:
+    """Extract the trailing integer window length from a feature name.
+
+    Args:
+        feature_name: Original string such as "sma_10".
+        prefix: Prefix to strip before parsing the integer portion.
+
+    Returns:
+        Positive integer window length used by moving calculations.
+
+    Raises:
+        FeatureEngineeringError: If the suffix cannot be parsed or is <= 1.
+    """
     try:
         window = int(feature_name[len(prefix) :])
     except ValueError as exc:  # pragma: no cover - defensive
@@ -66,6 +89,15 @@ def _parse_window(feature_name: str, prefix: str) -> int:
 
 
 def _simple_moving_average(values: List[float], window: int) -> List[Optional[float]]:
+    """Compute an SMA over the provided values.
+
+    Args:
+        values: Ordered numeric series.
+        window: Number of data points that make up each average.
+
+    Returns:
+        List matching `values` length with None for insufficient history.
+    """
     results: List[Optional[float]] = []
     cumulative = 0.0
     window_values: List[float] = []
@@ -82,6 +114,15 @@ def _simple_moving_average(values: List[float], window: int) -> List[Optional[fl
 
 
 def _exponential_moving_average(values: List[float], window: int) -> List[Optional[float]]:
+    """Compute an EMA over the provided values.
+
+    Args:
+        values: Ordered numeric series.
+        window: Period length that determines the EMA multiplier.
+
+    Returns:
+        List matching `values` length with progressively populated EMA values.
+    """
     results: List[Optional[float]] = []
     multiplier = 2 / (window + 1)
     ema: Optional[float] = None
@@ -95,6 +136,14 @@ def _exponential_moving_average(values: List[float], window: int) -> List[Option
 
 
 def _compute_returns(values: List[float]) -> List[Optional[float]]:
+    """Compute simple percentage returns between consecutive values.
+
+    Args:
+        values: Close prices or other sequential numeric series.
+
+    Returns:
+        Percentage change per step with 0.0 for the first observation.
+    """
     returns: List[Optional[float]] = []
     previous = None
     for value in values:
@@ -107,6 +156,15 @@ def _compute_returns(values: List[float]) -> List[Optional[float]]:
 
 
 def _rolling_volatility(returns: List[Optional[float]], window: int) -> List[Optional[float]]:
+    """Compute a rolling standard deviation over the provided returns.
+
+    Args:
+        returns: Percentage returns potentially containing None.
+        window: Number of points in each rolling window.
+
+    Returns:
+        List containing volatility estimates (standard deviation) or None until enough history.
+    """
     numeric_returns = [r if r is not None else 0.0 for r in returns]
     results: List[Optional[float]] = []
     window_values: List[float] = []

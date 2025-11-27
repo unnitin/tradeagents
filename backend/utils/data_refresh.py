@@ -21,7 +21,11 @@ from ..data_provider import (
 
 
 def run_setup(db_path: str) -> None:
-    """Drop and recreate the prices/features tables in the SQLite database."""
+    """Drop and recreate the prices/features tables in the SQLite database.
+
+    Args:
+        db_path: Filesystem path to the SQLite cache to reset.
+    """
     with db.connect(db_path) as conn:
         db.drop_and_create_price_tables(conn)
 
@@ -35,7 +39,16 @@ def run_backfill_prices(
     feature_names: Optional[Iterable[str]] = None,
     db_path: str = DATA_DB_PATH,
 ) -> None:
-    """Backfill <<days>> of OHLCV for symbols, recomputing features from scratch."""
+    """Backfill a fixed window of OHLCV bars and recompute features.
+
+    Args:
+        provider: MarketDataProvider used to fetch OHLCV candles.
+        symbols: Sequence of tickers to refresh.
+        days: Lookback window size counted backwards from now.
+        interval: Bar size such as '1d' or '1h'.
+        feature_names: Optional list of feature IDs to recompute; defaults to PRICE_DEFAULT_FEATURES.
+        db_path: SQLite database location for cached tables.
+    """
     start_date = datetime.utcnow() - timedelta(days=days)
     end_date = datetime.utcnow()
 
@@ -56,7 +69,16 @@ def run_incremental_update_prices(
     db_path: str = DATA_DB_PATH,
     lookback_if_empty_days: int = 5,
 ) -> None:
-    """Upsert new OHLCV rows and recompute features for provided symbols."""
+    """Upsert new OHLCV rows and recompute features for provided symbols.
+
+    Args:
+        provider: MarketDataProvider used for incremental fetches.
+        symbols: Sequence of tickers to refresh.
+        interval: Bar size such as '1d'.
+        feature_names: Optional features to recompute; defaults to PRICE_DEFAULT_FEATURES.
+        db_path: SQLite database location for cached tables.
+        lookback_if_empty_days: Days to backfill when cache is empty.
+    """
     with db.connect(db_path) as conn:
         db.ensure_price_tables(conn)
         for symbol in symbols:
@@ -71,6 +93,16 @@ def run_incremental_update_prices(
 def run_backfill(
     *, provider: MarketDataProvider, symbols: Sequence[str], days: int, interval: str = "1d", feature_names: Optional[Iterable[str]] = None, db_path: str = DATA_DB_PATH
 ) -> None:
+    """Compatibility wrapper for run_backfill_prices with identical arguments.
+
+    Args:
+        provider: Market data provider instance.
+        symbols: Sequence of tickers to refresh.
+        days: Lookback window in days.
+        interval: Bar size string.
+        feature_names: Optional feature names to recompute.
+        db_path: SQLite database location.
+    """
     run_backfill_prices(provider=provider, symbols=symbols, days=days, interval=interval, feature_names=feature_names, db_path=db_path)
 
 
@@ -83,6 +115,16 @@ def run_incremental_update(
     db_path: str = DATA_DB_PATH,
     lookback_if_empty_days: int = 5,
 ) -> None:
+    """Compatibility wrapper for run_incremental_update_prices with identical arguments.
+
+    Args:
+        provider: Market data provider instance.
+        symbols: Sequence of tickers to refresh.
+        interval: Bar size string.
+        feature_names: Optional feature names to recompute.
+        db_path: SQLite database location.
+        lookback_if_empty_days: Lookback window when cache is empty.
+    """
     run_incremental_update_prices(provider=provider, symbols=symbols, interval=interval, feature_names=feature_names, db_path=db_path, lookback_if_empty_days=lookback_if_empty_days)
 
 
@@ -92,7 +134,17 @@ def run_backfill_news(
     db_path: str = DATA_DB_PATH,
     news_provider: NewsDataProvider = None,  # type: ignore[assignment]
 ) -> None:
-    """Backfill news articles for symbols by dropping and recreating the news table."""
+    """Backfill news articles for symbols by dropping and recreating the news table.
+
+    Args:
+        symbols: Sequence of tickers to refresh.
+        days: Lookback period in days to capture.
+        db_path: SQLite database location that stores the news table.
+        news_provider: Provider implementation used to fetch articles.
+
+    Raises:
+        ValueError: If a news_provider is not supplied.
+    """
     if news_provider is None:
         raise ValueError("news_provider is required")
 
@@ -112,7 +164,17 @@ def run_incremental_update_news(
     news_provider: NewsDataProvider = None,  # type: ignore[assignment]
     lookback_if_empty_days: int = NEWS_DEFAULT_LOOKBACK_DAYS,
 ) -> None:
-    """Upsert news articles; uses recent lookback if table is empty."""
+    """Upsert news articles; uses recent lookback if table is empty.
+
+    Args:
+        symbols: Sequence of tickers to refresh.
+        db_path: SQLite database location that stores the news table.
+        news_provider: Provider implementation used to fetch articles.
+        lookback_if_empty_days: Lookback to seed the table if no rows exist.
+
+    Raises:
+        ValueError: If a news_provider is not supplied.
+    """
     if news_provider is None:
         raise ValueError("news_provider is required")
 
@@ -131,7 +193,17 @@ def run_backfill_trades(
     db_path: str = DATA_DB_PATH,
     trade_provider: TradeDataProvider = None,  # type: ignore[assignment]
 ) -> None:
-    """Backfill trade disclosures (e.g., politician trades) by dropping and recreating the trades table."""
+    """Backfill trade disclosures by dropping and recreating the trades table.
+
+    Args:
+        symbols: Sequence of tickers to refresh.
+        days: Lookback period in days to fetch.
+        db_path: SQLite database location for the trades table.
+        trade_provider: Provider implementation used to fetch trade records.
+
+    Raises:
+        ValueError: If trade_provider is not supplied.
+    """
     if trade_provider is None:
         raise ValueError("trade_provider is required")
 
@@ -151,7 +223,17 @@ def run_incremental_update_trades(
     trade_provider: TradeDataProvider = None,  # type: ignore[assignment]
     lookback_if_empty_days: int = TRADES_DEFAULT_LOOKBACK_DAYS,
 ) -> None:
-    """Upsert new trade disclosures; seeds with lookback if empty."""
+    """Upsert new trade disclosures; seeds with lookback if empty.
+
+    Args:
+        symbols: Sequence of tickers to refresh.
+        db_path: SQLite database location for the trades table.
+        trade_provider: Provider implementation used to fetch trade records.
+        lookback_if_empty_days: Lookback window if the cache lacks data.
+
+    Raises:
+        ValueError: If trade_provider is not supplied.
+    """
     if trade_provider is None:
         raise ValueError("trade_provider is required")
 

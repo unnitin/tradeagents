@@ -29,6 +29,17 @@ def create_app(
     trade_provider: Optional[TradeDataProvider] = None,
     db_path: str = DATA_DB_PATH,
 ) -> Flask:
+    """Create and configure the Flask app with optional provider overrides.
+
+    Args:
+        market_provider: Source for historical price data. Defaults to Yahoo provider.
+        news_provider: Source for headline data; if None, try to instantiate Yahoo.
+        trade_provider: Source for trade disclosures passed to refresh endpoints.
+        db_path: Path to the SQLite cache used by cache endpoints and refresh jobs.
+
+    Returns:
+        A fully configured Flask app ready to be served by gunicorn or flask run.
+    """
     app = Flask(__name__)
     executor = ThreadPoolExecutor(max_workers=3)
     selected_news_provider = news_provider
@@ -45,12 +56,28 @@ def create_app(
 
     @app.errorhandler(HTTPException)
     def handle_http_exception(error: HTTPException):
+        """Translate Werkzeug HTTPException into JSON error payload.
+
+        Args:
+            error: Raised HTTPException that triggered the handler.
+
+        Returns:
+            Flask response containing a JSON body with description and status code.
+        """
         response = jsonify({"error": error.description, "code": error.code})
         response.status_code = error.code
         return response
 
     @app.errorhandler(FeatureEngineeringError)
     def handle_feature_error(error: FeatureEngineeringError):
+        """Report invalid feature requests as HTTP 400 JSON errors.
+
+        Args:
+            error: FeatureEngineeringError raised while processing a request.
+
+        Returns:
+            Flask response describing the error and using 400 status.
+        """
         response = jsonify({"error": str(error), "code": HTTPStatus.BAD_REQUEST})
         response.status_code = HTTPStatus.BAD_REQUEST
         return response
@@ -309,6 +336,17 @@ def create_app(
 
 
 def _parse_date(value: str) -> date:
+    """Parse an ISO date string coming from query or JSON payloads.
+
+    Args:
+        value: Raw YYYY-MM-DD string supplied by the client.
+
+    Returns:
+        Parsed `date` object representing the same calendar day.
+
+    Raises:
+        HTTPException: Bubbled up via abort when parsing fails.
+    """
     try:
         return datetime.strptime(value, DATE_FORMAT).date()
     except ValueError as exc:
@@ -316,4 +354,12 @@ def _parse_date(value: str) -> date:
 
 
 def _to_datetime(value: date) -> datetime:
+    """Convert a `date` into a midnight `datetime` for DB comparisons.
+
+    Args:
+        value: Date value to convert.
+
+    Returns:
+        Datetime at 00:00 UTC (naive) for the provided date.
+    """
     return datetime.combine(value, datetime.min.time())

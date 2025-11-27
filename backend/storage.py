@@ -7,12 +7,7 @@ import sqlite3
 from typing import Dict, Iterable, List, Optional
 
 from .utils.constants import DATA_DB_PATH
-
-
-# TODO: @Codex-agent - move this to utils and import everywhere as needed
-def _connect(db_path: str = DATA_DB_PATH) -> sqlite3.Connection:
-    conn = sqlite3.connect(db_path)
-    return conn
+from .utils.db import connect
 
 
 def fetch_prices(
@@ -22,9 +17,20 @@ def fetch_prices(
     interval: str = "1d",
     db_path: str = DATA_DB_PATH,
 ) -> List[Dict]:
-    """Return cached OHLCV rows ordered by timestamp."""
+    """Return cached OHLCV rows ordered by timestamp.
+
+    Args:
+        symbol: Ticker to query.
+        start: Inclusive datetime lower bound.
+        end: Inclusive datetime upper bound.
+        interval: Bar size stored in the cache (default 1d).
+        db_path: SQLite database path.
+
+    Returns:
+        List of OHLCV dictionaries sorted ascending by timestamp.
+    """
     try:
-        with _connect(db_path) as conn:
+        with connect(db_path) as conn:
             rows = conn.execute(
                 """
                 SELECT ts, open, high, low, close, volume
@@ -57,7 +63,19 @@ def fetch_features(
     feature_filter: Optional[Iterable[str]] = None,
     db_path: str = DATA_DB_PATH,
 ) -> List[Dict]:
-    """Return cached feature rows aggregated per timestamp."""
+    """Return cached feature rows aggregated per timestamp.
+
+    Args:
+        symbol: Ticker to query.
+        start: Inclusive datetime lower bound.
+        end: Inclusive datetime upper bound.
+        interval: Bar size stored in the cache (default 1d).
+        feature_filter: Optional iterable of feature names to include.
+        db_path: SQLite database path.
+
+    Returns:
+        List of dicts keyed by feature name for each timestamp.
+    """
     feature_set = set(feature_filter) if feature_filter else None
     params = [symbol, interval, start.isoformat(), end.isoformat()]
     query = """
@@ -67,7 +85,7 @@ def fetch_features(
         ORDER BY ts ASC
     """
     try:
-        with _connect(db_path) as conn:
+        with connect(db_path) as conn:
             rows = conn.execute(query, params).fetchall()
     except sqlite3.OperationalError:
         return []
@@ -88,9 +106,19 @@ def fetch_news(
     end: date,
     db_path: str = DATA_DB_PATH,
 ) -> List[Dict]:
-    """Return cached news rows ordered by publication time."""
+    """Return cached news rows ordered by publication time.
+
+    Args:
+        symbol: Ticker to query.
+        start: Inclusive date lower bound.
+        end: Inclusive date upper bound.
+        db_path: SQLite database path.
+
+    Returns:
+        List of dicts describing cached articles.
+    """
     try:
-        with _connect(db_path) as conn:
+        with connect(db_path) as conn:
             rows = conn.execute(
                 """
                 SELECT symbol, published_at, headline, summary, url
@@ -120,9 +148,19 @@ def fetch_trades(
     end: date,
     db_path: str = DATA_DB_PATH,
 ) -> List[Dict]:
-    """Return cached trade disclosures ordered by execution time."""
+    """Return cached trade disclosures ordered by execution time.
+
+    Args:
+        symbol: Ticker to query.
+        start: Inclusive date lower bound.
+        end: Inclusive date upper bound.
+        db_path: SQLite database path.
+
+    Returns:
+        List of dicts describing cached trade disclosures.
+    """
     try:
-        with _connect(db_path) as conn:
+        with connect(db_path) as conn:
             rows = conn.execute(
                 """
                 SELECT symbol, executed_at, trader, action, quantity, price, source

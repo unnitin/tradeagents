@@ -40,6 +40,20 @@ class EnvironmentConfig:
 
 
 def load_automation_config(env: str, config_path: Path | None = None) -> EnvironmentConfig:
+    """Load and parse the automation config for the requested environment.
+
+    Args:
+        env: Name of the environment to load (e.g., dev, prod).
+        config_path: Optional explicit path to a settings file; defaults to
+            backend/config/data-settings.yaml relative to this module.
+
+    Returns:
+        EnvironmentConfig with strongly typed sections for storage, price,
+        news, and trades.
+
+    Raises:
+        ValueError: If the requested environment is missing in the config file.
+    """
     path = config_path or Path(__file__).resolve().parents[1] / "config" / "data-settings.yaml"
     with path.open("r", encoding="utf-8") as fh:
         raw = yaml.safe_load(fh) or {}

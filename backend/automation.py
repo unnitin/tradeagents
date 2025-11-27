@@ -34,7 +34,17 @@ def seed_dev_data(
     include_news: bool = False,
     include_trades: bool = False,
 ) -> None:
-    """Seed the local SQLite cache with prices/features (and optionally news/trades)."""
+    """Seed the local SQLite cache with prices/features (and optionally news/trades).
+
+    Args:
+        symbols: Tickers to refresh.
+        days: Lookback window in days for backfill.
+        interval: Bar size string for price data.
+        feature_names: Optional feature names to compute per candle.
+        db_path: SQLite database that stores cached tables.
+        include_news: Whether to also backfill news articles.
+        include_trades: Whether to also backfill trades.
+    """
     market_provider = YahooMarketDataProvider()
     news_provider = YahooNewsDataProvider() if include_news else None
     trade_provider: TradeDataProvider | None = None
@@ -66,6 +76,11 @@ def seed_dev_data(
 
 
 def seed_from_config(env: str = "dev") -> None:
+    """Seed caches using settings from backend/config/data-settings.yaml.
+
+    Args:
+        env: Environment key defined in the YAML file.
+    """
     cfg = load_automation_config(env)
     price_cfg = cfg.price
     storage_cfg = cfg.storage
