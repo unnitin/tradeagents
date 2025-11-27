@@ -23,3 +23,7 @@ def test_data_settings_yaml_is_valid_and_has_required_sections() -> None:
             assert section in env_cfg, f"{env_name} missing required '{section}' section"
         assert isinstance(env_cfg["storage"], dict), f"{env_name} storage section must be a mapping"
         assert isinstance(env_cfg["price"], dict), f"{env_name} price section must be a mapping"
+        news_cfg = env_cfg.get("news")
+        assert isinstance(news_cfg, dict), f"{env_name} news section must be a mapping"
+        provider = news_cfg.get("provider")
+        assert isinstance(provider, str) and provider, f"{env_name} news provider must be specified"

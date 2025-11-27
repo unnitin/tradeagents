@@ -8,7 +8,13 @@ from __future__ import annotations
 
 from typing import Iterable, Sequence
 
-from .data_provider import TradeDataProvider, YahooMarketDataProvider, YahooNewsDataProvider
+from .data_provider import (
+    NewsDataProvider,
+    TradeDataProvider,
+    YahooMarketDataProvider,
+    YahooNewsDataProvider,
+    build_news_provider,
+)
 from .utils import data_refresh
 from .utils.constants import DATA_DB_PATH, PRICE_DEFAULT_FEATURES
 from .utils.config_parser import load_automation_config
@@ -23,6 +29,8 @@ run_incremental_update_trades = data_refresh.run_incremental_update_trades
 run_backfill = data_refresh.run_backfill
 run_incremental_update = data_refresh.run_incremental_update
 
+DEFAULT_NEWS_PROVIDER: NewsDataProvider = YahooNewsDataProvider()
+
 
 def seed_dev_data(
     symbols: Sequence[str] = ("AAPL", "MSFT", "NVDA"),
@@ -33,6 +41,7 @@ def seed_dev_data(
     db_path: str = DATA_DB_PATH,
     include_news: bool = False,
     include_trades: bool = False,
+    news_provider: NewsDataProvider | None = DEFAULT_NEWS_PROVIDER,
 ) -> None:
     """Seed the local SQLite cache with prices/features (and optionally news/trades).
 
@@ -44,9 +53,9 @@ def seed_dev_data(
         db_path: SQLite database that stores cached tables.
         include_news: Whether to also backfill news articles.
         include_trades: Whether to also backfill trades.
+        news_provider: Optional explicit news provider to use instead of defaults.
     """
     market_provider = YahooMarketDataProvider()
-    news_provider = YahooNewsDataProvider() if include_news else None
     trade_provider: TradeDataProvider | None = None
 
     data_refresh.run_backfill_prices(
@@ -85,12 +94,14 @@ def seed_from_config(env: str = "dev") -> None:
     price_cfg = cfg.price
     storage_cfg = cfg.storage
 
+    configured_news_provider = build_news_provider(cfg.news.provider)
+
     seed_dev_data(
         symbols=tuple(price_cfg.tickers),
         days=int(price_cfg.lookback_days),
         interval=price_cfg.interval,
         db_path=storage_cfg.path or DATA_DB_PATH,
-        include_news=bool(cfg.news.provider),
+        news_provider=configured_news_provider,
         include_trades=bool(cfg.trades.provider),
     )
 

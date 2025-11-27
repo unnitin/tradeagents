@@ -112,8 +112,8 @@ environments:
       lookback_days: 30
       interval: 1d
     news:
-      provider: null
-      notes: TBD/none for development
+      provider: yahoo
+      notes: Default to Yahoo Finance news in development
     trades:
       provider: null
       notes: TBD/none for development
@@ -129,8 +129,8 @@ environments:
       lookback_days: 90
       interval: 15m
     news:
-      provider: null
-      notes: TBD/none for production
+      provider: yahoo
+      notes: Default to Yahoo Finance news in production until a managed feed is wired
     trades:
       provider: null
       notes: TBD/none for production

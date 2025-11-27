@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 import math
-from typing import List, Optional, Sequence, Union
+from typing import Callable, Dict, List, Optional, Sequence, Union
 
 try:  # pragma: no cover - optional dependency handled at runtime
     import yfinance as yf
@@ -296,6 +296,30 @@ class YahooNewsDataProvider(NewsDataProvider):
             )
 
         return results
+
+
+def build_news_provider(provider_name: Optional[str]) -> Optional[NewsDataProvider]:
+    """Instantiate a news provider declared in configuration.
+
+    Args:
+        provider_name: Name of the provider (e.g., "yahoo").
+
+    Returns:
+        Configured NewsDataProvider instance or None when no provider requested.
+
+    Raises:
+        ValueError: If the provider name is not recognized.
+    """
+    if not provider_name:
+        return None
+
+    provider_key = provider_name.strip().lower()
+    registry: Dict[str, Callable[[], NewsDataProvider]] = {"yahoo": YahooNewsDataProvider}
+
+    factory = registry.get(provider_key)
+    if factory is None:
+        raise ValueError(f"Unknown news provider '{provider_name}'. Available: {', '.join(sorted(registry.keys()))}")
+    return factory()
 
 
 def _to_datetime(value: Union[date, datetime]) -> datetime:
