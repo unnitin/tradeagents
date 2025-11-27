@@ -6,7 +6,7 @@
 - Feature engineering helpers for SMA/EMA/returns/volatility.
 - Test utilities include a deterministic synthetic data provider used in unit tests.
 - Automation utilities (`backend/utils/data_refresh.py`) for backfills/incremental updates of prices/features, plus news and trade disclosures into SQLite.
-- Environment-aware automation config defined in `backend/config/automation.yaml` and loaded via `backend/utils/config.py`.
+- Environment-aware automation config defined in `backend/config/data-settings.yaml` and loaded via `backend/utils/config_parser.py`.
 - Cache read endpoints: `/cache/prices`, `/cache/features`, `/cache/news`, `/cache/trades` for data served from the SQLite store.
 - Refresh endpoint: `POST /refresh` to trigger incremental updates using configured providers.
 - Production entrypoint via Gunicorn: `gunicorn -b 0.0.0.0:8000 backend.wsgi:app`.
@@ -21,7 +21,7 @@
 
 ## Tests
 - Run `python3 -m pytest` (uses the synthetic provider to avoid external calls).
-- Automation: use `backend/utils/data_refresh.py` helpers (`run_backfill` / `run_incremental_update`, news/trades variants) or the wrapper `backend/automation.py:seed_from_config`. Configuration for dev/prod lives in `backend/config/automation.yaml` (parsed via `backend/utils/config.py`).
+- Automation: use `backend/utils/data_refresh.py` helpers (`run_backfill` / `run_incremental_update`, news/trades variants) or the wrapper `backend/automation.py:seed_from_config`. Configuration for dev/prod lives in `backend/config/data-settings.yaml` (parsed via `backend/utils/config_parser.py`).
 - Lint: `python3 -m pip install -r requirements-dev.txt && ruff .`
 
 ## Git hooks / linting
@@ -52,7 +52,7 @@ The hooks are defined in `.pre-commit-config.yaml` at the repo root. Ruff runs o
 - Security: authn/z middleware, secrets management, and outbound call allowlisting.
 
 ## Backfill guidance (SQLite caches)
-- Use `backend/utils/data_refresh.py` helpers: `run_backfill_prices` for a clean seed, `run_incremental_update_prices` for ongoing upserts; equivalent helpers exist for news/trades. For a simple local seed, run `python -m backend.automation` which reads `backend/config/automation.yaml` (dev env by default) and seeds using those ticker/time settings.
+- Use `backend/utils/data_refresh.py` helpers: `run_backfill_prices` for a clean seed, `run_incremental_update_prices` for ongoing upserts; equivalent helpers exist for news/trades. For a simple local seed, run `python -m backend.automation` which reads `backend/config/data-settings.yaml` (dev env by default) and seeds using those ticker/time settings.
 - Rough timing: backfilling the top ~200 symbols for ~4 weeks of daily bars is typically on the order of 1–2 minutes end-to-end if the provider responds in ~100–300 ms per symbol. Slower providers (1–2s/symbol) or rate limits can push this to ~5–7 minutes; feature computation and SQLite writes are negligible compared to network.
 - Parameterize by environment: symbol universe, interval (e.g., `1d` vs `15m`), feature set, lookback window, and DB path should be configurable (e.g., `.env` or config file) so dev can stay lightweight while prod uses the full universe.
 - Storage: local SQLite at `data.db` works for dev. A mounted volume like `/Volumes/fast-expansion` is present but currently not writable from this environment; confirm write permissions before using it for shared caches.

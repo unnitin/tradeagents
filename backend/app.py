@@ -253,34 +253,53 @@ def create_app(
         if not symbols or not isinstance(symbols, list):
             abort(HTTPStatus.BAD_REQUEST, description="symbols must be a non-empty list of tickers")
 
-        try:
-            executor.submit(
+        jobs = [
+            (
                 data_refresh.run_incremental_update_prices,
-                provider=data_gateway._market_provider,
-                symbols=symbols,
-                interval=interval,
-                feature_names=feature_names,
-                db_path=db_path,
-                lookback_if_empty_days=lookback,
+                dict(
+                    provider=data_gateway._market_provider,
+                    symbols=symbols,
+                    interval=interval,
+                    feature_names=feature_names,
+                    db_path=db_path,
+                    lookback_if_empty_days=lookback,
+                ),
+            )
+        ]
+
+        if refresh_news and data_gateway._news_provider:
+            jobs.append(
+                (
+                    data_refresh.run_incremental_update_news,
+                    dict(
+                        symbols=symbols,
+                        db_path=db_path,
+                        news_provider=data_gateway._news_provider,
+                        lookback_if_empty_days=lookback,
+                    ),
+                )
             )
 
-            if refresh_news and data_gateway._news_provider:
-                executor.submit(
-                    data_refresh.run_incremental_update_news,
-                    symbols=symbols,
-                    db_path=db_path,
-                    news_provider=data_gateway._news_provider,
-                    lookback_if_empty_days=lookback,
-                )
-
-            if refresh_trades and trade_provider:
-                executor.submit(
+        if refresh_trades and trade_provider:
+            jobs.append(
+                (
                     data_refresh.run_incremental_update_trades,
-                    symbols=symbols,
-                    db_path=db_path,
-                    trade_provider=trade_provider,
-                    lookback_if_empty_days=lookback,
+                    dict(
+                        symbols=symbols,
+                        db_path=db_path,
+                        trade_provider=trade_provider,
+                        lookback_if_empty_days=lookback,
+                    ),
                 )
+            )
+
+        try:
+            if app.config.get("TESTING"):
+                for func, kwargs in jobs:
+                    func(**kwargs)
+            else:
+                for func, kwargs in jobs:
+                    executor.submit(func, **kwargs)
         except ValueError as exc:
             abort(HTTPStatus.BAD_REQUEST, description=str(exc))
 

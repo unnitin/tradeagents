@@ -40,7 +40,7 @@ class EnvironmentConfig:
 
 
 def load_automation_config(env: str, config_path: Path | None = None) -> EnvironmentConfig:
-    path = config_path or Path(__file__).resolve().parents[1] / "config" / "automation.yaml"
+    path = config_path or Path(__file__).resolve().parents[1] / "config" / "data-settings.yaml"
     with path.open("r", encoding="utf-8") as fh:
         raw = yaml.safe_load(fh) or {}
     envs: Mapping[str, dict] = raw.get("environments", {})

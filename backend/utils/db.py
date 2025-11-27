@@ -40,7 +40,7 @@ def drop_and_create_price_tables(conn: sqlite3.Connection) -> None:
             ts TEXT NOT NULL,
             interval TEXT NOT NULL,
             feature_name TEXT NOT NULL,
-            value REAL NOT NULL,
+            value REAL,
             PRIMARY KEY (symbol, ts, interval, feature_name)
         );
         """
@@ -70,7 +70,7 @@ def ensure_price_tables(conn: sqlite3.Connection) -> None:
             ts TEXT NOT NULL,
             interval TEXT NOT NULL,
             feature_name TEXT NOT NULL,
-            value REAL NOT NULL,
+            value REAL,
             PRIMARY KEY (symbol, ts, interval, feature_name)
         );
         """
@@ -145,11 +145,11 @@ def drop_and_create_news_table(conn: sqlite3.Connection) -> None:
         """
         CREATE TABLE news (
             symbol TEXT NOT NULL,
-            ts TEXT NOT NULL,
+            published_at TEXT NOT NULL,
             headline TEXT NOT NULL,
             summary TEXT,
             url TEXT,
-            PRIMARY KEY (symbol, ts, headline)
+            PRIMARY KEY (symbol, published_at, headline)
         );
         """
     )
@@ -160,11 +160,11 @@ def ensure_news_table(conn: sqlite3.Connection) -> None:
         """
         CREATE TABLE IF NOT EXISTS news (
             symbol TEXT NOT NULL,
-            ts TEXT NOT NULL,
+            published_at TEXT NOT NULL,
             headline TEXT NOT NULL,
             summary TEXT,
             url TEXT,
-            PRIMARY KEY (symbol, ts, headline)
+            PRIMARY KEY (symbol, published_at, headline)
         );
         """
     )
@@ -172,7 +172,7 @@ def ensure_news_table(conn: sqlite3.Connection) -> None:
 
 def upsert_news(conn: sqlite3.Connection, symbol: str, articles: Iterable[NewsArticle], *, replace_existing: bool) -> None:
     rows = [(symbol, article.published_at.isoformat(), article.headline, article.summary, article.url) for article in articles]
-    sql = "INSERT OR REPLACE INTO news (symbol, ts, headline, summary, url) VALUES (?, ?, ?, ?, ?);" if replace_existing else "INSERT OR IGNORE INTO news (symbol, ts, headline, summary, url) VALUES (?, ?, ?, ?, ?);"
+    sql = "INSERT OR REPLACE INTO news (symbol, published_at, headline, summary, url) VALUES (?, ?, ?, ?, ?);" if replace_existing else "INSERT OR IGNORE INTO news (symbol, published_at, headline, summary, url) VALUES (?, ?, ?, ?, ?);"
     conn.executemany(sql, rows)
 
 
@@ -182,12 +182,13 @@ def drop_and_create_trades_table(conn: sqlite3.Connection) -> None:
         """
         CREATE TABLE trades (
             symbol TEXT NOT NULL,
-            ts TEXT NOT NULL,
-            actor TEXT NOT NULL,
+            executed_at TEXT NOT NULL,
+            trader TEXT NOT NULL,
             action TEXT NOT NULL,
-            amount REAL,
-            security TEXT,
-            PRIMARY KEY (symbol, ts, actor, action)
+            quantity REAL,
+            price REAL,
+            source TEXT,
+            PRIMARY KEY (symbol, executed_at, trader, action)
         );
         """
     )
@@ -198,25 +199,28 @@ def ensure_trades_table(conn: sqlite3.Connection) -> None:
         """
         CREATE TABLE IF NOT EXISTS trades (
             symbol TEXT NOT NULL,
-            ts TEXT NOT NULL,
-            actor TEXT NOT NULL,
+            executed_at TEXT NOT NULL,
+            trader TEXT NOT NULL,
             action TEXT NOT NULL,
-            amount REAL,
-            security TEXT,
-            PRIMARY KEY (symbol, ts, actor, action)
+            quantity REAL,
+            price REAL,
+            source TEXT,
+            PRIMARY KEY (symbol, executed_at, trader, action)
         );
         """
     )
 
 
 def upsert_trades(conn: sqlite3.Connection, symbol: str, trades: Iterable[TradeRecord], *, replace_existing: bool) -> None:
-    rows = [(symbol, trade.date.isoformat(), trade.actor, trade.action, trade.amount, trade.security) for trade in trades]
-    sql = "INSERT OR REPLACE INTO trades (symbol, ts, actor, action, amount, security) VALUES (?, ?, ?, ?, ?, ?);" if replace_existing else "INSERT OR IGNORE INTO trades (symbol, ts, actor, action, amount, security) VALUES (?, ?, ?, ?, ?, ?);"
+    rows = [
+        (symbol, trade.executed_at.isoformat(), trade.trader, trade.action, trade.quantity, trade.price, trade.source) for trade in trades
+    ]
+    sql = "INSERT OR REPLACE INTO trades (symbol, executed_at, trader, action, quantity, price, source) VALUES (?, ?, ?, ?, ?, ?, ?);" if replace_existing else "INSERT OR IGNORE INTO trades (symbol, executed_at, trader, action, quantity, price, source) VALUES (?, ?, ?, ?, ?, ?, ?);"
     conn.executemany(sql, rows)
 
 
 def next_news_start_date(conn: sqlite3.Connection, symbol: str, lookback_if_empty_days: int) -> date:
-    cursor = conn.execute("SELECT MAX(ts) FROM news WHERE symbol = ?;", (symbol,))
+    cursor = conn.execute("SELECT MAX(published_at) FROM news WHERE symbol = ?;", (symbol,))
     result = cursor.fetchone()[0]
     if result is None:
         return datetime.utcnow().date() - timedelta(days=lookback_if_empty_days)
@@ -224,7 +228,7 @@ def next_news_start_date(conn: sqlite3.Connection, symbol: str, lookback_if_empt
 
 
 def next_trades_start_date(conn: sqlite3.Connection, symbol: str, lookback_if_empty_days: int) -> date:
-    cursor = conn.execute("SELECT MAX(ts) FROM trades WHERE symbol = ?;", (symbol,))
+    cursor = conn.execute("SELECT MAX(executed_at) FROM trades WHERE symbol = ?;", (symbol,))
     result = cursor.fetchone()[0]
     if result is None:
         return datetime.utcnow().date() - timedelta(days=lookback_if_empty_days)
