@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Iterable, Sequence
 
 from .data_provider import (
+    MarketDataProvider,
     NewsDataProvider,
     TradeDataProvider,
     YahooMarketDataProvider,
@@ -29,6 +30,7 @@ run_incremental_update_trades = data_refresh.run_incremental_update_trades
 run_backfill = data_refresh.run_backfill
 run_incremental_update = data_refresh.run_incremental_update
 
+DEFAULT_MARKET_PROVIDER: MarketDataProvider = YahooMarketDataProvider()
 DEFAULT_NEWS_PROVIDER: NewsDataProvider = YahooNewsDataProvider()
 
 
@@ -42,6 +44,8 @@ def seed_dev_data(
     include_news: bool = False,
     include_trades: bool = False,
     news_provider: NewsDataProvider | None = DEFAULT_NEWS_PROVIDER,
+    market_provider: MarketDataProvider | None = DEFAULT_MARKET_PROVIDER,
+    trade_provider: TradeDataProvider | None = None,
 ) -> None:
     """Seed the local SQLite cache with prices/features (and optionally news/trades).
 
@@ -54,9 +58,9 @@ def seed_dev_data(
         include_news: Whether to also backfill news articles.
         include_trades: Whether to also backfill trades.
         news_provider: Optional explicit news provider to use instead of defaults.
+        market_provider: Optional market data provider, defaults to Yahoo.
+        trade_provider: Optional trade data provider used when include_trades is true.
     """
-    market_provider = YahooMarketDataProvider()
-    trade_provider: TradeDataProvider | None = None
 
     data_refresh.run_backfill_prices(
         provider=market_provider,
