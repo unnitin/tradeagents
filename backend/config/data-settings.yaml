@@ -5,7 +5,7 @@ environments:
     storage:
       engine: sqlite
       location: repo
-      path: data.db
+      path: data/data.db
       notes: Local development uses SQLite on the repo root.
     price:
       tickers:
@@ -112,8 +112,8 @@ environments:
       lookback_days: 30
       interval: 1d
     news:
-      provider: yahoo
-      notes: Default to Yahoo Finance news in development
+      provider: finnhub
+      notes: Set FINNHUB_API_KEY in your environment before running automation
     trades:
       provider: null
       notes: TBD/none for development
@@ -129,8 +129,8 @@ environments:
       lookback_days: 90
       interval: 15m
     news:
-      provider: yahoo
-      notes: Default to Yahoo Finance news in production until a managed feed is wired
+      provider: finnhub
+      notes: Set FINNHUB_API_KEY in your environment before running automation
     trades:
       provider: null
       notes: TBD/none for production
