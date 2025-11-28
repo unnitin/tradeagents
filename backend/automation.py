@@ -107,6 +107,7 @@ def seed_from_config(env: str = "dev") -> None:
         db_path=storage_cfg.path or DATA_DB_PATH,
         news_provider=configured_news_provider,
         include_trades=bool(cfg.trades.provider),
+        include_news=bool(cfg.news.provider),
     )
 
 
