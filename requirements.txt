@@ -5,3 +5,4 @@ yfinance>=0.2,<0.3
 pandas>=2.0,<3.0
 gunicorn>=21.0,<22.0
 PyYAML>=6.0,<7.0
+requests>=2.31,<3.0

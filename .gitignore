@@ -26,6 +26,7 @@ data.db-wal
 node_modules/
 dist/
 build/
+.vite/
 .next/
 .nuxt/
 out/

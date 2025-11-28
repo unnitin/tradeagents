@@ -1,5 +1,7 @@
+version: "3.9"
+
 services:
-  tests:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
@@ -7,7 +9,9 @@ services:
       APP_ENV: dev
       DATA_DB_PATH: /app/data/data.db
       FINNHUB_API_KEY: "${FINNHUB_API_KEY:?set FINNHUB_API_KEY in your environment}"
+    ports:
+      - "8000:8000"
     volumes:
-      - ./:/app
-    working_dir: /app
-    command: ["pytest"]
+      - ./backend:/app/backend
+      - ./data:/app/data
+    command: ["gunicorn", "-b", "0.0.0.0:8000", "backend.wsgi:app"]

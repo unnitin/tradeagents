@@ -5,7 +5,16 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 import math
+import os
+import time
 from typing import Callable, Dict, List, Optional, Sequence, Union
+
+from .utils.constants import DATE_FORMAT
+
+try:  # pragma: no cover - lightweight HTTP dependency
+    import requests
+except ImportError:  # pragma: no cover
+    requests = None  # type: ignore[assignment]
 
 try:  # pragma: no cover - optional dependency handled at runtime
     import yfinance as yf
@@ -298,6 +307,85 @@ class YahooNewsDataProvider(NewsDataProvider):
         return results
 
 
+class FinnhubNewsDataProvider(NewsDataProvider):
+    """News provider backed by Finnhub's company news REST API."""
+
+    _BASE_PATH = "company-news"
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        session: Optional["requests.Session"] = None,
+        base_url: str = "https://finnhub.io/api/v1",
+        rate_limit_retry_delay: float = 60.0,
+        max_rate_limit_retries: int = 5,
+    ) -> None:
+        """Configure provider with optional API key/session overrides.
+
+        Args:
+            api_key: Finnhub API key. Falls back to FINNHUB_API_KEY env var.
+            session: Optional requests.Session for injection/testing.
+            base_url: Base Finnhub API URL.
+
+        Raises:
+            ImportError: If the requests package is unavailable.
+        """
+        if requests is None:
+            raise ImportError("requests is required for FinnhubNewsDataProvider")
+        self._api_key = api_key or os.getenv("FINNHUB_API_KEY")
+        self._session = session or requests.Session()
+        self._base_url = base_url.rstrip("/")
+        self._retry_delay = max(rate_limit_retry_delay, 0)
+        self._max_rate_limit_retries = max(max_rate_limit_retries, 0)
+
+    def get_news(self, symbol: str, start_date: date, end_date: date) -> Sequence[NewsArticle]:
+        """Return news articles fetched from Finnhub's company-news endpoint."""
+        if start_date > end_date:
+            raise ValueError("start_date must be on or before end_date")
+        if not self._api_key:
+            raise ValueError("Finnhub API key is required. Set FINNHUB_API_KEY or pass api_key.")
+
+        params = {
+            "symbol": symbol,
+            "from": start_date.strftime(DATE_FORMAT),
+            "to": end_date.strftime(DATE_FORMAT),
+            "token": self._api_key,
+        }
+        url = f"{self._base_url}/{self._BASE_PATH}"
+        payload = self._fetch_with_retry(url, params)
+
+        articles: List[NewsArticle] = []
+        for item in payload:
+            published_ts = item.get("datetime")
+            if published_ts is None:
+                continue
+            published_at = datetime.fromtimestamp(published_ts)
+            articles.append(
+                NewsArticle(
+                    symbol=symbol,
+                    headline=item.get("headline", ""),
+                    summary=item.get("summary", "") or "",
+                    published_at=published_at,
+                    url=item.get("url"),
+                )
+            )
+
+        return articles
+
+    def _fetch_with_retry(self, url: str, params: Dict[str, str]) -> List[Dict[str, object]]:
+        """Fetch Finnhub payload with basic 429 retry support."""
+        attempts = 0
+        while True:
+            response = self._session.get(url, params=params, timeout=10)
+            if response.status_code == 429 and attempts < self._max_rate_limit_retries:
+                attempts += 1
+                if self._retry_delay:
+                    time.sleep(self._retry_delay)
+                continue
+            response.raise_for_status()
+            return response.json() or []
+
+
 def build_news_provider(provider_name: Optional[str]) -> Optional[NewsDataProvider]:
     """Instantiate a news provider declared in configuration.
 
@@ -314,7 +402,10 @@ def build_news_provider(provider_name: Optional[str]) -> Optional[NewsDataProvid
         return None
 
     provider_key = provider_name.strip().lower()
-    registry: Dict[str, Callable[[], NewsDataProvider]] = {"yahoo": YahooNewsDataProvider}
+    registry: Dict[str, Callable[[], NewsDataProvider]] = {
+        "yahoo": YahooNewsDataProvider,
+        "finnhub": FinnhubNewsDataProvider,
+    }
 
     factory = registry.get(provider_key)
     if factory is None:
