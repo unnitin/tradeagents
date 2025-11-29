@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask, abort, jsonify, request
+from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
 from .utils.constants import DATE_FORMAT, DATA_DB_PATH
@@ -41,6 +42,7 @@ def create_app(
         A fully configured Flask app ready to be served by gunicorn or flask run.
     """
     app = Flask(__name__)
+    CORS(app)
     executor = ThreadPoolExecutor(max_workers=3)
     selected_news_provider = news_provider
     if selected_news_provider is None and YahooNewsDataProvider is not None:

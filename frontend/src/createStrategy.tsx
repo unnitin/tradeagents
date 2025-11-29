@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import './styles.css';
+import { getCachedNews } from './api/client';
 
 type Ticker = { symbol: string; name: string; price: number; change: number };
 type ChatEntry = { author: string; message: string; timestamp: string };
@@ -31,11 +32,20 @@ const featureFeed = [
   { label: 'Relative strength', detail: 'NVDA outperforming SOXX by 2.1% over 2w' },
 ];
 
-const newsFeed = [
-  { title: 'NVDA announces new inference chips', time: '08:55', impact: 'Positive sentiment 0.64' },
-  { title: 'MSFT AI partnership update', time: '08:48', impact: 'Neutral to positive' },
-  { title: 'SMCI supply-chain headline', time: '08:30', impact: 'Watch for follow-up' },
+type NewsCardItem = {
+  headline: string;
+  timestamp: string;
+  summary?: string;
+  url?: string | null;
+};
+
+const fallbackNewsFeed: NewsCardItem[] = [
+  { headline: 'NVDA announces new inference chips', timestamp: '08:55', summary: 'Positive sentiment 0.64' },
+  { headline: 'MSFT AI partnership update', timestamp: '08:48', summary: 'Neutral to positive' },
+  { headline: 'SMCI supply-chain headline', timestamp: '08:30', summary: 'Watch for follow-up' },
 ];
+
+const NEWS_LOOKBACK_DAYS = 7;
 
 const priceSeries: CandlePoint[] = [
   { date: '2024-02-01', price: 118, sma: 117, ema: 116, bbUpper: 122, bbLower: 112 },
@@ -47,6 +57,23 @@ const priceSeries: CandlePoint[] = [
   { date: '2024-02-25', price: 129, sma: 125, ema: 125, bbUpper: 135, bbLower: 119 },
   { date: '2024-02-29', price: 134, sma: 127, ema: 127, bbUpper: 139, bbLower: 121 },
 ];
+
+function formatDateISO(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function formatNewsTimestamp(value: string): string {
+  try {
+    return new Date(value).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return value;
+  }
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -265,6 +292,49 @@ function ChatPane() {
 }
 
 function FeedPane() {
+  const [newsItems, setNewsItems] = useState<NewsCardItem[]>(fallbackNewsFeed);
+  const [newsLoading, setNewsLoading] = useState<boolean>(false);
+  const [newsError, setNewsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchNews() {
+      setNewsLoading(true);
+      setNewsError(null);
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - NEWS_LOOKBACK_DAYS);
+      try {
+        const rows = await getCachedNews(tickers[0].symbol, formatDateISO(start), formatDateISO(end));
+        if (!cancelled && rows.length) {
+          const mapped = rows
+            .slice(-5)
+            .reverse()
+            .map((row) => ({
+              headline: row.headline,
+              summary: row.summary,
+              timestamp: row.published_at,
+              url: row.url,
+            }));
+          setNewsItems(mapped);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setNewsError(err instanceof Error ? err.message : 'Unable to load news');
+        }
+      } finally {
+        if (!cancelled) {
+          setNewsLoading(false);
+        }
+      }
+    }
+
+    fetchNews();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="feed-grid">
       <article className="feed-card">
@@ -286,13 +356,26 @@ function FeedPane() {
           <p className="eyebrow">News</p>
           <h3>Recent headlines</h3>
         </div>
+        {newsLoading && <p className="eyebrow">Loading news…</p>}
+        {newsError && (
+          <p className="eyebrow" style={{ color: '#b42318' }}>
+            Failed to load news: {newsError}
+          </p>
+        )}
         <ul className="feed-list">
-          {newsFeed.map((item) => (
-            <li key={item.title}>
-              <strong>{item.title}</strong>
-              <span>
-                {item.time} · {item.impact}
-              </span>
+          {newsItems.map((item) => (
+            <li key={item.headline}>
+              <strong>
+                {item.url ? (
+                  <a href={item.url} target="_blank" rel="noreferrer">
+                    {item.headline}
+                  </a>
+                ) : (
+                  item.headline
+                )}
+              </strong>
+              <span>{formatNewsTimestamp(item.timestamp)}</span>
+              {item.summary && <p>{item.summary}</p>}
             </li>
           ))}
         </ul>
