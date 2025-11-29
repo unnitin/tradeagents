@@ -1,65 +1,11 @@
 import { useMemo, useState } from 'react';
+import type { StrategyRecord, SeriesPoint, NewsEvent, StrategyConfig } from '../hooks/useStrategiesData';
+import { useStrategiesData } from '../hooks/useStrategiesData';
 
-type SeriesPoint = { date: string; price: number; indicator: number };
-type NewsEvent = { date: string; label: string };
-
-type Strategy = {
-  name: string;
-  date: string;
-  priceSeries: SeriesPoint[];
-  newsEvents: NewsEvent[];
-  returnPct: number;
-  maxDrawdownPct: number;
-  sharpe: number;
-};
-
-const strategies: Strategy[] = [
-  {
-    name: 'Orion Momentum',
-    date: '2024-03-15',
-    priceSeries: [
-      { date: '2024-01-02', price: 100, indicator: 98 },
-      { date: '2024-01-08', price: 104, indicator: 101 },
-      { date: '2024-01-15', price: 109, indicator: 105 },
-      { date: '2024-01-22', price: 115, indicator: 110 },
-      { date: '2024-01-29', price: 112, indicator: 111 },
-      { date: '2024-02-05', price: 118, indicator: 114 },
-      { date: '2024-02-12', price: 124, indicator: 120 },
-      { date: '2024-02-19', price: 129, indicator: 124 },
-      { date: '2024-02-26', price: 133, indicator: 126 },
-      { date: '2024-03-04', price: 138, indicator: 130 },
-    ],
-    newsEvents: [
-      { date: '2024-01-22', label: 'Earnings beat' },
-      { date: '2024-02-12', label: 'AI partnership' },
-    ],
-    returnPct: 28.4,
-    maxDrawdownPct: -6.1,
-    sharpe: 1.9,
-  },
-  {
-    name: 'Helios Signal Blend',
-    date: '2024-02-10',
-    priceSeries: [
-      { date: '2024-01-02', price: 95, indicator: 96 },
-      { date: '2024-01-08', price: 96, indicator: 97 },
-      { date: '2024-01-15', price: 98, indicator: 98 },
-      { date: '2024-01-22', price: 102, indicator: 101 },
-      { date: '2024-01-29', price: 105, indicator: 103 },
-      { date: '2024-02-05', price: 108, indicator: 105 },
-      { date: '2024-02-12', price: 110, indicator: 108 },
-      { date: '2024-02-19', price: 113, indicator: 110 },
-      { date: '2024-02-26', price: 115, indicator: 111 },
-      { date: '2024-03-04', price: 117, indicator: 113 },
-    ],
-    newsEvents: [
-      { date: '2024-01-29', label: 'Regulation update' },
-      { date: '2024-02-26', label: 'Sector rotation' },
-    ],
-    returnPct: 23.1,
-    maxDrawdownPct: -4.8,
-    sharpe: 1.6,
-  },
+const STRATEGY_CONFIGS: StrategyConfig[] = [
+  { symbol: 'AAPL', name: 'AAPL Momentum' },
+  { symbol: 'MSFT', name: 'MSFT Signal Blend' },
+  { symbol: 'NVDA', name: 'NVDA Growth Pulse' },
 ];
 
 type ChartProps = {
@@ -73,8 +19,9 @@ function StrategyChart({ series, news }: ChartProps) {
   const padding = 20;
 
   const prices = series.map((p) => p.price);
-  const indicators = series.map((p) => p.indicator);
-  const allValues = [...prices, ...indicators];
+  const indicators = series.map((p) => (p.indicator ?? p.price));
+  const hasIndicator = series.some((p) => p.indicator !== null);
+  const allValues = [...prices, ...(hasIndicator ? indicators : prices)];
   const min = Math.min(...allValues);
   const max = Math.max(...allValues);
 
@@ -97,7 +44,7 @@ function StrategyChart({ series, news }: ChartProps) {
   return (
     <svg className="strategy-chart" viewBox={`0 0 ${width} ${height}`} role="img">
       <path d={toPath(prices)} className="price-line" />
-      <path d={toPath(indicators)} className="indicator-line" />
+      {hasIndicator && <path d={toPath(indicators)} className="indicator-line" />}
       {series.map((point, idx) => (
         <circle
           key={point.date}
@@ -126,6 +73,8 @@ function StrategyChart({ series, news }: ChartProps) {
 }
 
 export function Dashboard() {
+  const { strategies, loading, error, refresh } = useStrategiesData(STRATEGY_CONFIGS);
+
   return (
     <section className="dashboard" id="dashboard">
       <header className="section-heading">
@@ -136,58 +85,85 @@ export function Dashboard() {
             Charts blend price, technical signals, and key news markers—plus quick stats on return and risk.
           </p>
         </div>
+        <div className="dashboard-actions">
+          <button type="button" className="ghost-btn" onClick={refresh}>
+            Refresh data
+          </button>
+        </div>
       </header>
 
-      <div className="strategy-grid">
-        {strategies.slice(0, 2).map((strategy) => (
-          <article key={strategy.name} className="strategy-card">
-            <div className="card-header">
-              <div>
-                <p className="eyebrow">{strategy.date}</p>
-                <h3>{strategy.name}</h3>
-              </div>
-              <div className="metrics-inline">
-                <div>
-                  <span className="metric-label">Return</span>
-                  <span className="metric-value">{strategy.returnPct.toFixed(1)}%</span>
-                </div>
-                <div>
-                  <span className="metric-label">Max DD</span>
-                  <span className="metric-value">{strategy.maxDrawdownPct.toFixed(1)}%</span>
-                </div>
-                <div>
-                  <span className="metric-label">Sharpe</span>
-                  <span className="metric-value">{strategy.sharpe.toFixed(1)}</span>
-                </div>
-              </div>
-            </div>
-            <StrategyChart series={strategy.priceSeries} news={strategy.newsEvents} />
-          </article>
-        ))}
-      </div>
-
-      <div className="strategy-table-card">
-        <div className="table-header-row">
-          <div className="table-title">
-            <p className="eyebrow">Strategies</p>
-            <h3>All runs</h3>
-          </div>
-          <small>Sort by name or date to scan recent runs.</small>
+      {loading && <p className="eyebrow">Loading market data…</p>}
+      {error && (
+        <div
+          style={{
+            marginTop: '1rem',
+            padding: '1rem',
+            borderRadius: '16px',
+            background: '#fff0f0',
+            border: '1px solid #ffb4b4',
+          }}
+        >
+          <p style={{ marginBottom: '0.5rem' }}>Unable to load strategy data: {error}</p>
+          <button type="button" className="ghost-btn" onClick={refresh}>
+            Retry
+          </button>
         </div>
-        <StrategyTable />
-      </div>
+      )}
+
+      {strategies.length > 0 && (
+        <>
+          <div className="strategy-grid">
+            {strategies.slice(0, 2).map((strategy) => (
+              <article key={strategy.name} className="strategy-card">
+                <div className="card-header">
+                  <div>
+                    <p className="eyebrow">{strategy.date}</p>
+                    <h3>{strategy.name}</h3>
+                  </div>
+                  <div className="metrics-inline">
+                    <div>
+                      <span className="metric-label">Return</span>
+                      <span className="metric-value">{strategy.returnPct.toFixed(1)}%</span>
+                    </div>
+                    <div>
+                      <span className="metric-label">Max DD</span>
+                      <span className="metric-value">{strategy.maxDrawdownPct.toFixed(1)}%</span>
+                    </div>
+                    <div>
+                      <span className="metric-label">Sharpe</span>
+                      <span className="metric-value">{strategy.sharpe.toFixed(1)}</span>
+                    </div>
+                  </div>
+                </div>
+                <StrategyChart series={strategy.priceSeries} news={strategy.newsEvents} />
+              </article>
+            ))}
+          </div>
+
+          <div className="strategy-table-card">
+            <div className="table-header-row">
+              <div className="table-title">
+                <p className="eyebrow">Strategies</p>
+                <h3>All runs</h3>
+              </div>
+              <small>Sort by name or date to scan recent runs.</small>
+            </div>
+            <StrategyTable rows={strategies} />
+          </div>
+        </>
+      )}
     </section>
   );
 }
 
 type SortKey = 'name' | 'date';
 
-function StrategyTable() {
+function StrategyTable({ rows }: { rows: StrategyRecord[] }) {
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [ascending, setAscending] = useState<boolean>(true);
 
-  const rows = useMemo(() => {
-    const sorted = [...strategies];
+  const sortedRows = useMemo(() => {
+    const sorted = [...rows];
     sorted.sort((a, b) => {
       if (sortKey === 'name') {
         return ascending ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
@@ -195,7 +171,7 @@ function StrategyTable() {
       return ascending ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date);
     });
     return sorted;
-  }, [sortKey, ascending]);
+  }, [rows, sortKey, ascending]);
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -219,7 +195,7 @@ function StrategyTable() {
         <div>Max drawdown</div>
         <div>Sharpe</div>
       </div>
-      {rows.map((row) => (
+      {sortedRows.map((row) => (
         <div className="table-row" key={row.name}>
           <div>{row.name}</div>
           <div>{row.date}</div>

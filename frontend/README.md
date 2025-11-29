@@ -9,13 +9,25 @@ surfacing market data, features, news, and backtest summaries.
 - **Strategy workspace** – pipeline steps, chat thread mock, and CTAs representing the client ↔ agent workflow.
 - **Data highlights** – placeholder metrics plus a feature/news table that references backend data endpoints conceptually.
 - **Backtest insights** – cards summarizing backtest KPIs and an adjacent news feed mock.
-- **Dashboard page (`/dashboard.html`)** – two example strategy tiles with price + indicator line charts and news markers, plus a sortable table of strategy runs. Uses static sample data for now.
+- **Dashboard page (`/dashboard.html`)** – now fetches cached prices/features/news from the Flask backend (set `VITE_API_BASE`, defaults to `http://localhost:8000`) to plot price + indicator charts and populate the strategies table.
 
 ## Run locally
 ```bash
 cd frontend
 npm install
 npm run dev -- --host 0.0.0.0 --port 5173
+```
+
+Or run inside Docker (requires a backend API running somewhere and optionally a `VITE_API_BASE` override):
+
+```bash
+# from repo root
+VITE_API_BASE=http://localhost:8000 docker compose -f docker-compose.frontend.yml up
+```
+Set `VITE_API_BASE` in `.env` (or export it) to point at the backend, e.g.:
+
+```
+VITE_API_BASE=http://localhost:8000
 ```
 
 ## Next steps (frontend)

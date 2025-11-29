@@ -1,8 +1,38 @@
 # Strategy & Backtest API Specification
 
-_Reference for REST/JSON contracts that power strategy creation, orchestration, and backtesting._
+Reference for REST/JSON contracts that power strategy creation, orchestration, and backtesting. This doc now groups
+endpoints into:
 
-## 1. Strategy Service
+- **DONE** – APIs implemented today (see `backend/app.py`).
+- **TO-DO** – Planned contracts that still need backend work.
+
+## DONE (Implemented APIs)
+
+These endpoints already exist in the Flask service and power the new frontend wiring:
+
+### Market & Feature APIs
+
+- `GET /data/prices` – fetch OHLCV candles from the market provider for arbitrary windows.
+- `POST /features` – compute indicators/features on demand given a symbol + date range.
+
+### Cache Readers
+
+- `GET /cache/prices` – read cached OHLCV bars from SQLite (supports interval filter).
+- `GET /cache/features` – read cached feature rows (optional `feature` query filter).
+- `GET /cache/news` – read cached news (now backed by Finnhub).
+- `GET /cache/trades` – read cached trade disclosures.
+
+### Maintenance / Automation
+
+- `POST /refresh` – trigger incremental updates (prices, features, optional news/trades) for a batch of symbols.
+- `POST /automation/seed_dev_data` (invoked via CLI) – backfill helper used by Docker workflow.
+- `GET /health` – basic heartbeat for load balancers/CLI checks.
+
+## TO-DO (Planned APIs)
+
+The sections below remain future work and outline what still needs to be implemented.
+
+### 1. Strategy Service
 
 ### 1.1 Entities
 
@@ -589,6 +619,18 @@ Generate a natural-language explanation of a backtest result.
   "focus": ["drawdowns", "regimes"]   // optional hints
 }
 ```
+
+---
+
+### 4. Additional Proposed APIs
+
+These surfaced while wiring the frontend/dashboard and should be added to the backlog:
+
+- `GET /strategies/{strategy_id}/series` – one call that returns merged price, indicator, signal, and news data for chart rendering.
+- `GET /strategies/{strategy_id}/signals` – historical buy/sell actions to overlay on charts or audit a run.
+- `GET /metrics/highlights` – aggregate dashboard stats (top gainers, biggest drawdowns, most news coverage).
+- `GET /news/summary` – sentiment counts + article totals per symbol to support highlight cards.
+- `POST /strategies/{strategy_id}/refresh` – trigger targeted cache refresh/news pulls for a single strategy without enumerating symbols manually.
 
 **Typical server flow**
 
