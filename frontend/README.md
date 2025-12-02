@@ -50,3 +50,11 @@ The UI presently uses static data because these services are absent:
 4. **Notifications/events**: feed for alerts (e.g., backtest completions, signal triggers, news flags).
 5. **Auth + workspace scoping**: user/session auth, tenant/workspace boundaries, and RBAC around strategies/data.
 6. **Agent middleware bridge**: orchestration entrypoints for multi-agent tasks (signal generation, routing, guardrails).
+
+## Relationship to the Strategy submodule
+- Once the dedicated Strategy service (see `strategy/README.md`) ships, wire dashboard/workspace calls to its APIs for
+  listing strategies, fetching versions, and requesting validation/refinements.
+- Coordinate on shared types (strategy DSL, version metadata) via a generated client so UI state stays in sync with the
+  backend + strategy services.
+- Expect new endpoints for combined price/indicator/signal series that will let the dashboard render a strategy in one
+  request; update the data fetching hooks accordingly.

@@ -44,6 +44,14 @@ The hooks are defined in `.pre-commit-config.yaml` at the repo root. Ruff runs o
 - Backfill news and other trade trackers to min(the extent of data availability, 3 years)
 - Add technical features such as bollinger bands, RS etc. 
 
+## Strategy service integration
+- Treat the new `strategy/` module as the system of record for strategy JSON + NL summaries; backend tasks should
+  fetch specs through its APIs once implemented rather than re-hydrating DSL directly from chat payloads.
+- Backtest orchestration (`POST /backtests`) will reference strategy versions via IDs minted by the Strategy service;
+  ensure validation/lookups go through an internal client or shared SDK to avoid divergence.
+- As `/strategies/{id}/series` and `/strategies/{id}/signals` land in the Strategy service, reuse backend indicator/data
+  helpers through a lightweight shared library to keep logic in one place.
+
 ## Path to production hardening
 - Add retry/backoff + circuit breakers around Yahoo providers; surface dependency health in `/health`.
 - Introduce request metrics/tracing (OpenTelemetry) and structured logging.
